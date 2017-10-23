@@ -5,9 +5,9 @@
 #include "stdbool.h"
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
-#include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "sdkconfig.h"
+#include "esp32_i2c.h"
 
 #define MAX17043_ADDRESS                0x36
 //02h-03h.  Reports 12-bit A/D measurement of battery voltage.  READ-ONLY.
@@ -46,6 +46,7 @@ typedef struct BatteryInfo{
     uint8_t alertPin;
     uint8_t alertThreshold;
     bool sleeping;
+    I2C_CONFIG i2c;
 
     esp_err_t (*begin)(struct BatteryInfo *self);
     esp_err_t (*reset)(struct BatteryInfo *self);

@@ -16,7 +16,7 @@ void bat_read_task(void *arg)
 
 	while (true)
 	{
-		printf("Percent: %.1f%%, Vcell: %fV\n", fuel_gague.getBatteryPercentage(&fuel_gague),
+		printf("Percent: %.1f%%, Vcell: %.3fV\n", fuel_gague.getBatteryPercentage(&fuel_gague),
 									    	  fuel_gague.getBatteryVoltage(&fuel_gague));
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
@@ -40,7 +40,6 @@ void init()
 
 void app_main()
 {
-
 	init();
     vTaskDelay(1000 / portTICK_RATE_MS);
 
