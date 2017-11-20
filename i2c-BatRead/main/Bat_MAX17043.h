@@ -42,7 +42,7 @@
 
 typedef struct BatteryInfo{
     uint8_t SDAPin;
-	uint8_t SCLPin;
+    uint8_t SCLPin;
     uint8_t alertPin;
     uint8_t alertThreshold;
     bool sleeping;
@@ -50,47 +50,48 @@ typedef struct BatteryInfo{
     esp_err_t (*begin)(struct BatteryInfo *self);
     esp_err_t (*reset)(struct BatteryInfo *self);
     
-  	/* 
-	quickStart() issues a quick-start command to the MAX170433.
-	A quick start allows the MAX170433 to restart fuel-gauge calculations
-	in the same manner as initial power-up of the IC. If an application's
-	power-up sequence is very noisy, such that excess error is introduced
-	into the IC's first guess of SOC, the Arduino can issue a quick-start
-	to reduce the error.
-	*/
+    /* 
+    quickStart() issues a quick-start command to the MAX170433.
+    A quick start allows the MAX170433 to restart fuel-gauge calculations
+    in the same manner as initial power-up of the IC. If an application's
+    power-up sequence is very noisy, such that excess error is introduced
+    into the IC's first guess of SOC, the Arduino can issue a quick-start
+    to reduce the error.
+    */
     esp_err_t (*quickStart)(struct BatteryInfo *self);
     uint16_t (*getVersion)(struct BatteryInfo *self);
 
     /*
-	batteryVoltage() returns a float value voltage based on the 12-bit ADC reading
-	of the battery as reported by the MAX170433's VCELL register
-	*/
-	float (*getBatteryVoltage)(struct BatteryInfo *self);
+    batteryVoltage() returns a float value voltage based on the 12-bit ADC reading
+    of the battery as reported by the MAX170433's VCELL register
+    */
+    float (*getBatteryVoltage)(struct BatteryInfo *self);
 
     /*
-	batteryPercentage() returns a float value of the battery percentage
-	reported from the SOC register of the MAX170433.
-	*/
-	float (*getBatteryPercentage)(struct BatteryInfo *self);
+    batteryPercentage() returns a float value of the battery percentage
+    reported from the SOC register of the MAX170433.
+    */
+    float (*getBatteryPercentage)(struct BatteryInfo *self);
 
     /* 
-	setAlertThreshold(uint8_t percent) configures the config register of
-	the MAX170143, specifically the alert threshold therein. Pass a 
-	value between 1 and 32 to set the alert threshold to a value between
-	1 and 32%. Anything below will be set to 1%, above 32%.
-	*/
-	void (*setAlertThreshold)(struct BatteryInfo *self, uint8_t percent);
-	uint8_t (*getAlertThreshold)(struct BatteryInfo *self);
-  	//gets it from the register
-  	uint8_t (*getAlertThresholdRegister)(struct BatteryInfo *self);
-  	bool (*isAlerting)(struct BatteryInfo *self);
-  	void (*clearAlert)(struct BatteryInfo *self);
+    setAlertThreshold(uint8_t percent) configures the config register of
+    the MAX170143, specifically the alert threshold therein. Pass a 
+    value between 1 and 32 to set the alert threshold to a value between
+    1 and 32%. Anything below will be set to 1%, above 32%.
+    */
+    void (*setAlertThreshold)(struct BatteryInfo *self, uint8_t percent);
+    uint8_t (*getAlertThreshold)(struct BatteryInfo *self);
+    //gets it from the register
+    uint8_t (*getAlertThresholdRegister)(struct BatteryInfo *self);
+    bool (*isAlerting)(struct BatteryInfo *self);
+    void (*clearAlert)(struct BatteryInfo *self);
   	
-  	//gets it from the register
-  	bool (*isSleepingRegister)(struct BatteryInfo *self);
-  	void (*sleep)(struct BatteryInfo *self);
-  	void (*wake)(struct BatteryInfo *self);
-}MAX17043;
+    //gets it from the register
+    bool (*isSleepingRegister)(struct BatteryInfo *self);
+    void (*sleep)(struct BatteryInfo *self);
+    void (*wake)(struct BatteryInfo *self);
+
+} MAX17043;
 
 void MAX17043_Init(MAX17043 *fuel_gauge);
 
