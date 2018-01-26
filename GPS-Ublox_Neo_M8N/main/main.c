@@ -47,7 +47,7 @@ void echo_task()
         {
             //sprintf(buf_display[0], "altitude: %.2f", gps.altitude);
             //ssd1306.SSD1306_string(&ssd1306, 0, 0, buf_display[0], 16, 1); 
-            sprintf(buf_display[1], "N: %f", gps.latitude);
+            sprintf(buf_display[1], "N:%f", gps.latitude);
             ssd1306.SSD1306_string(&ssd1306, 0, 16, buf_display[1], 16, 1); 
             sprintf(buf_display[2], "E:%f", gps.longitude);
             ssd1306.SSD1306_string(&ssd1306, 0, 32, buf_display[2], 16, 1); 

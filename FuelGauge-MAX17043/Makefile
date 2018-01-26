@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := i2c-BatRead
+PROJECT_NAME := fuelgauge
 
 include $(IDF_PATH)/make/project.mk
 

@@ -11,7 +11,7 @@
 #include "driver/mcpwm.h"
 #include "sdkconfig.h"
 
-#define GPIO_PWM0A_OUT 15
+#define GPIO_PWM0A_OUT 2
 #define GPIO_BUTTON 0
 
 static xQueueHandle gpio_queue = NULL;
