@@ -1,0 +1,12 @@
+eclipse.preferences.version=1
+environment/project/0.1024746867/IDF_PATH/delimiter=\:
+environment/project/0.1024746867/IDF_PATH/operation=replace
+environment/project/0.1024746867/IDF_PATH/value=/home/rws205/embedded/esp32/iotbits_esp32/esp-idf
+environment/project/0.1024746867/PATH/delimiter=\:
+environment/project/0.1024746867/PATH/operation=append
+environment/project/0.1024746867/PATH/value=/home/rws205/embedded/esp32/xtensa-esp32-elf/bin
+environment/project/0.1024746867/V/delimiter=\:
+environment/project/0.1024746867/V/operation=append
+environment/project/0.1024746867/V/value=1
+environment/project/0.1024746867/append=true
+environment/project/0.1024746867/appendContributed=true

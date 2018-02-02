@@ -7,7 +7,7 @@
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
-#define MPU6050_DEFAULT_ADDRESS     MPU6050_ADDRESS_AD0_LOW
+#define MPU6050_ADDRESS             MPU6050_ADDRESS_AD0_LOW
 
 #define MPU6050_RA_XG_OFFS_TC       0x00 //[7] PWR_MODE, [6:1] XG_OFFS_TC, [0] OTP_BNK_VLD
 #define MPU6050_RA_YG_OFFS_TC       0x01 //[7] PWR_MODE, [6:1] YG_OFFS_TC, [0] OTP_BNK_VLD
@@ -35,6 +35,7 @@
 #define MPU6050_RA_CONFIG           0x1A
 #define MPU6050_RA_GYRO_CONFIG      0x1B
 #define MPU6050_RA_ACCEL_CONFIG     0x1C
+#define MPU6050_RA_ACCEL_CONFIG_2   0x1D
 #define MPU6050_RA_FF_THR           0x1D
 #define MPU6050_RA_FF_DUR           0x1E
 #define MPU6050_RA_MOT_THR          0x1F
@@ -189,6 +190,19 @@
 #define MPU6050_ACONFIG_AFS_SEL_LENGTH      2
 #define MPU6050_ACONFIG_ACCEL_HPF_BIT       2
 #define MPU6050_ACONFIG_ACCEL_HPF_LENGTH    3
+
+#define MPU6050_ACONFIG2_FCHOICE_B_BIT      2
+#define MPU6050_ACONFIG2_FCHOICE_B_LENGTH   2
+#define MPU6050_ACONFIG2_DLPF_BIT           0
+#define MPU6050_ACONFIG2_DLPF_LENGTH        2
+
+#define MPU6050_ACCEL_DLPF_BW_460   0x00
+#define MPU6050_ACCEL_DLPF_BW_184   0x01
+#define MPU6050_ACCEL_DLPF_BW_92    0x02
+#define MPU6050_ACCEL_DLPF_BW_41    0x03
+#define MPU6050_ACCEL_DLPF_BW_20    0x04
+#define MPU6050_ACCEL_DLPF_BW_10    0x05
+#define MPU6050_ACCEL_DLPF_BW_5     0x06
 
 #define MPU6050_ACCEL_FS_2          0x00
 #define MPU6050_ACCEL_FS_4          0x01
@@ -383,26 +397,49 @@
 #define MPU6050_DMP_MEMORY_BANK_SIZE    256
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE   16
 
+#define MPU6050_DEG_PER_LSB_250  (float)((2 * 250.0) / 65536.0)
+#define MPU6050_DEG_PER_LSB_500  (float)((2 * 500.0) / 65536.0)
+#define MPU6050_DEG_PER_LSB_1000 (float)((2 * 1000.0) / 65536.0)
+#define MPU6050_DEG_PER_LSB_2000 (float)((2 * 2000.0) / 65536.0)
+
+#define MPU6050_G_PER_LSB_2      (float)((2 * 2) / 65536.0)
+#define MPU6050_G_PER_LSB_4      (float)((2 * 4) / 65536.0)
+#define MPU6050_G_PER_LSB_8      (float)((2 * 8) / 65536.0)
+#define MPU6050_G_PER_LSB_16     (float)((2 * 16) / 65536.0)
+
+#define BUF_LEN (14 + 8 + 6)
+
 typedef struct mpu6050 
 {
-    I2C_CONFIG i2c;
-    uint8_t SDAPin;
-    uint8_t SCLPin;
+    I2C_CONFIG *i2c;
     int16_t ax;
     int16_t ay;
     int16_t az;
     int16_t gx;
     int16_t gy;
     int16_t gz;
+    uint8_t buffer[14];
 
-    void (*setClockSource) (struct mpu6050 *self, uint8_t source);
-    void (*setFullScaleGyroRange) (struct mpu6050 *self, uint8_t range);
-    void (*setFullScaleAccelRange) (struct mpu6050 *self, uint8_t range);
-    void (*setSleepEnabled) (struct mpu6050 *self, bool enabled);
-    void (*getMotion) (struct mpu6050 *self);
+    void (*setRate)(struct mpu6050 *self, uint8_t rate);
+    void (*setAccelDLPF)(struct mpu6050 *self, uint8_t range);
+    void (*setTempSensorEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setIntEnabled)(struct mpu6050 *self, uint8_t enabled);
+    void (*setClockSource)(struct mpu6050 *self, uint8_t source);
+    void (*setFullScaleGyroRange)(struct mpu6050 *self, uint8_t range);
+    void (*setFullScaleAccelRange)(struct mpu6050 *self, uint8_t range);
+    void (*setSleepEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setI2CBypassEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setI2CMasterModeEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setDLPFMode)(struct mpu6050 *self, uint8_t mode);
+    void (*getMotion)(struct mpu6050 *self);
+    void (*reset)(struct mpu6050 *self);
+    void (*readAllRaw)(struct mpu6050 *self, uint8_t *buffer);
+    float (*getFullScaleAccelGPL)(struct mpu6050 *self);
+    uint8_t (*getFullScaleAccelRangeId)(struct mpu6050 *self);
+    bool (*testConnection)(struct mpu6050 *self);
 
 } MPU6050;
 
-esp_err_t MPU6050_Init(MPU6050 *mpu);
+void MPU6050_Init(MPU6050 *mpu);
 
 #endif

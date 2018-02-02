@@ -59,19 +59,23 @@ typedef enum
 
 typedef struct vector
 {
-    float XAxis;
-    float YAxis;
-    float ZAxis;
+    float x;
+    float y;
+    float z;
 }Vector;
 
 typedef struct hmc
 {
-    I2C_CONFIG i2c;
-    
+    I2C_CONFIG *i2c;
+    uint8_t ADDR;
     uint8_t SDAPin;
     uint8_t SCLPin;
+    int16_t mx;
+    int16_t my;
+    int16_t mz;
     float mgPerDigit;
     int xOffset, yOffset;
+    uint8_t buffer[6];
     Vector v;
 
     Vector (*readRaw)(struct hmc *self);
@@ -85,7 +89,7 @@ typedef struct hmc
     hmc5883l_dataRate_t (*getDataRate)(struct hmc *self);
     void (*setSamples)(struct hmc *self, hmc5883l_samples_t samples);
     hmc5883l_samples_t (*getSamples)(struct hmc *self);
-
+    void (*checkSettings)(struct hmc *self);
 
 }HMC5883L;
 
