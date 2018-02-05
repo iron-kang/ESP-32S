@@ -407,11 +407,12 @@
 #define MPU6050_G_PER_LSB_8      (float)((2 * 8) / 65536.0)
 #define MPU6050_G_PER_LSB_16     (float)((2 * 16) / 65536.0)
 
-#define BUF_LEN (14 + 8 + 6)
+#define BUF_LEN (14 + 8 + 6*0)
 
 typedef struct mpu6050 
 {
     I2C_CONFIG *i2c;
+    uint8_t devAddr;
     int16_t ax;
     int16_t ay;
     int16_t az;
@@ -433,13 +434,27 @@ typedef struct mpu6050
     void (*setDLPFMode)(struct mpu6050 *self, uint8_t mode);
     void (*getMotion)(struct mpu6050 *self);
     void (*reset)(struct mpu6050 *self);
-    void (*readAllRaw)(struct mpu6050 *self, uint8_t *buffer);
+    void (*readAllRaw)(struct mpu6050 *self, uint8_t *buffer, uint8_t len);
     float (*getFullScaleAccelGPL)(struct mpu6050 *self);
     uint8_t (*getFullScaleAccelRangeId)(struct mpu6050 *self);
     bool (*testConnection)(struct mpu6050 *self);
+    void (*setSlave4MasterDelay)(struct mpu6050 *self, uint8_t delay);
+    void (*setWaitForExternalSensorEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setInterruptMode)(struct mpu6050 *self, bool mode);
+    void (*setInterruptDrive)(struct mpu6050 *self, bool drive);
+    void (*setInterruptLatch)(struct mpu6050 *self, bool latch);
+    void (*setInterruptLatchClear)(struct mpu6050 *self, bool clear);
+    void (*setSlaveReadWriteTransitionEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setMasterClockSpeed)(struct mpu6050 *self, uint8_t speed);
+    void (*setSlaveAddress)(struct mpu6050 *self, uint8_t num, uint8_t address);
+    void (*setSlaveRegister)(struct mpu6050 *self, uint8_t num, uint8_t reg);
+    void (*setSlaveDataLength)(struct mpu6050 *self, uint8_t num, uint8_t length);
+    void (*setSlaveDelayEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
+    void (*setIntDataReadyEnabled)(struct mpu6050 *self, bool enabled);
+    void (*setSlaveEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
 
 } MPU6050;
 
-void MPU6050_Init(MPU6050 *mpu);
+void MPU6050_Init(MPU6050 *mpu, uint8_t addr);
 
 #endif

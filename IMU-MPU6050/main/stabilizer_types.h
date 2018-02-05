@@ -137,11 +137,11 @@ typedef struct control_s {
   float thrust;
 } control_t;
 
-typedef enum mode_e {
+typedef enum {
   modeDisable = 0,
   modeAbs,
   modeVelocity
-} mode_t;
+} mode_e;
 
 typedef struct setpoint_s {
   attitude_t attitude;
