@@ -1,34 +1,65 @@
+#include <math.h>
 #include "sensor.h"
 #include "imu_types.h"
 #include "stabilizer_types.h"
 #include "mpu6050.h"
 #include "ak8963.h"
 #include "config.h"
-#include "freertos/FreeRTOS.h"
 
-#define SENSORS_TASK_NAME     "SENSORS"
-#define MAG_GAUSS_PER_LSB     666.7f
+#define SENSORS_TASK_NAME           "SENSORS"
+#define MAG_GAUSS_PER_LSB           666.7f
 
+#define SENSORS_DEG_PER_LSB_CFG     MPU6050_DEG_PER_LSB_2000
+#define SENSORS_G_PER_LSB_CFG       MPU6050_G_PER_LSB_16
 #define SENSORS_MPU6050_BUFF_LEN    14
 #define SENSORS_MAG_BUFF_LEN        8
+#define SENSORS_NBR_OF_BIAS_SAMPLES 1024
+#define SENSORS_ACC_SCALE_SAMPLES   200
+
+#define GYRO_NBR_OF_AXES            3
+#define GYRO_MIN_BIAS_TIMEOUT_MS    M2T(1*1000)
+#define GYRO_VARIANCE_BASE          5000
+#define GYRO_VARIANCE_THRESHOLD_X   (GYRO_VARIANCE_BASE)
+#define GYRO_VARIANCE_THRESHOLD_Y   (GYRO_VARIANCE_BASE)
+#define GYRO_VARIANCE_THRESHOLD_Z   (GYRO_VARIANCE_BASE)
+
+typedef struct
+{
+  Axis3f     bias;
+  bool       isBiasValueFound;
+  bool       isBufferFilled;
+  Axis3i16*  bufHead;
+  Axis3i16   buffer[SENSORS_NBR_OF_BIAS_SAMPLES];
+} BiasObj;
 
 xQueueHandle accelerometerDataQueue;
 xQueueHandle gyroDataQueue;
 xQueueHandle magnetometerDataQueue;
 xQueueHandle barometerDataQueue;
+bool    gyroBiasFound = false;
 
 MPU6050 imu;
 AK8963 mag;
+BiasObj gyroBiasRunning;
+Axis3f  gyroBias;
 sensorData_t sensors;
 uint8_t buffer[BUF_LEN] = {0};
+float accScaleSum = 0;
+float accScale = 1;
+float cosPitch;
+float sinPitch;
+float cosRoll;
+float sinRoll;
 
 void processAccGyroMeasurements(const uint8_t *buffer);
 void processMagnetometerMeasurements(const uint8_t *buffer);
 void processBarometerMeasurements(const uint8_t *buffer);
+void sensorsBiasObjInit(BiasObj* bias);
 void SensorTask_Init();
 
 void Sensor_Init(Bus *bus)
 {
+	sensorsBiasObjInit(&gyroBiasRunning);
 	imu.i2c = &bus->i2c;
 	mag.i2c = &bus->i2c;
 
@@ -89,6 +120,174 @@ void Sensor_Init(Bus *bus)
 	SensorTask_Init();
 }
 
+void sensorsBiasObjInit(BiasObj* bias)
+{
+  bias->isBufferFilled = false;
+  bias->bufHead = bias->buffer;
+}
+
+/**
+ * Calculates the variance and mean for the bias buffer.
+ */
+void sensorsCalculateVarianceAndMean(BiasObj* bias, Axis3f* varOut, Axis3f* meanOut)
+{
+	uint32_t i;
+	int64_t sum[GYRO_NBR_OF_AXES] = {0};
+	int64_t sumSq[GYRO_NBR_OF_AXES] = {0};
+
+	for (i = 0; i < SENSORS_NBR_OF_BIAS_SAMPLES; i++)
+	{
+		sum[0] += bias->buffer[i].x;
+		sum[1] += bias->buffer[i].y;
+		sum[2] += bias->buffer[i].z;
+		sumSq[0] += bias->buffer[i].x * bias->buffer[i].x;
+		sumSq[1] += bias->buffer[i].y * bias->buffer[i].y;
+		sumSq[2] += bias->buffer[i].z * bias->buffer[i].z;
+	}
+
+	varOut->x = (sumSq[0] - ((int64_t)sum[0] * sum[0]) / SENSORS_NBR_OF_BIAS_SAMPLES);
+	varOut->y = (sumSq[1] - ((int64_t)sum[1] * sum[1]) / SENSORS_NBR_OF_BIAS_SAMPLES);
+	varOut->z = (sumSq[2] - ((int64_t)sum[2] * sum[2]) / SENSORS_NBR_OF_BIAS_SAMPLES);
+
+	meanOut->x = (float)sum[0] / SENSORS_NBR_OF_BIAS_SAMPLES;
+	meanOut->y = (float)sum[1] / SENSORS_NBR_OF_BIAS_SAMPLES;
+	meanOut->z = (float)sum[2] / SENSORS_NBR_OF_BIAS_SAMPLES;
+}
+
+/**
+ * Adds a new value to the variance buffer and if it is full
+ * replaces the oldest one. Thus a circular buffer.
+ */
+void sensorsAddBiasValue(BiasObj* bias, int16_t x, int16_t y, int16_t z)
+{
+	bias->bufHead->x = x;
+	bias->bufHead->y = y;
+	bias->bufHead->z = z;
+	bias->bufHead++;
+
+	if (bias->bufHead >= &bias->buffer[SENSORS_NBR_OF_BIAS_SAMPLES])
+	{
+		bias->bufHead = bias->buffer;
+		bias->isBufferFilled = true;
+	}
+}
+
+/**
+ * Checks if the variances is below the predefined thresholds.
+ * The bias value should have been added before calling this.
+ * @param bias  The bias object
+ */
+bool sensorsFindBiasValue(BiasObj* bias)
+{
+	static int32_t varianceSampleTime;
+	bool foundBias = false;
+
+	if (bias->isBufferFilled)
+	{
+		Axis3f variance;
+		Axis3f mean;
+
+		sensorsCalculateVarianceAndMean(bias, &variance, &mean);
+
+		if (variance.x < GYRO_VARIANCE_THRESHOLD_X &&
+			variance.y < GYRO_VARIANCE_THRESHOLD_Y &&
+			variance.z < GYRO_VARIANCE_THRESHOLD_Z &&
+			(varianceSampleTime + GYRO_MIN_BIAS_TIMEOUT_MS < xTaskGetTickCount()))
+		{
+			varianceSampleTime = xTaskGetTickCount();
+			bias->bias.x = mean.x;
+			bias->bias.y = mean.y;
+			bias->bias.z = mean.z;
+			foundBias = true;
+			bias->isBiasValueFound = true;
+		}
+	}
+
+	return foundBias;
+}
+
+bool processGyroBias(int16_t gx, int16_t gy, int16_t gz, Axis3f *gyroBiasOut)
+{
+	sensorsAddBiasValue(&gyroBiasRunning, gx, gy, gz);
+
+	if (!gyroBiasRunning.isBiasValueFound)
+	{
+		sensorsFindBiasValue(&gyroBiasRunning);
+		if (gyroBiasRunning.isBiasValueFound)
+		{
+			//soundSetEffect(SND_CALIB);
+			//ledseqRun(SYS_LED, seq_calibrated);
+		}
+	}
+
+	gyroBiasOut->x = gyroBiasRunning.bias.x;
+	gyroBiasOut->y = gyroBiasRunning.bias.y;
+	gyroBiasOut->z = gyroBiasRunning.bias.z;
+
+	return gyroBiasRunning.isBiasValueFound;
+}
+
+/**
+ * Calculates accelerometer scale out of SENSORS_ACC_SCALE_SAMPLES samples. Should be called when
+ * platform is stable.
+ */
+bool processAccScale(int16_t ax, int16_t ay, int16_t az)
+{
+	static bool accBiasFound = false;
+	static uint32_t accScaleSumCount = 0;
+
+	if (!accBiasFound)
+	{
+		accScaleSum += sqrtf(powf(ax * SENSORS_G_PER_LSB_CFG, 2) + powf(ay * SENSORS_G_PER_LSB_CFG, 2) + powf(az * SENSORS_G_PER_LSB_CFG, 2));
+		accScaleSumCount++;
+
+		if (accScaleSumCount == SENSORS_ACC_SCALE_SAMPLES)
+		{
+			accScale = accScaleSum / SENSORS_ACC_SCALE_SAMPLES;
+			accBiasFound = true;
+		}
+	}
+
+	return accBiasFound;
+}
+
+bool sensorsAreCalibrated()
+{
+  return gyroBiasFound;
+}
+
+/**
+ * Compensate for a miss-aligned accelerometer. It uses the trim
+ * data gathered from the UI and written in the config-block to
+ * rotate the accelerometer to be aligned with gravity.
+ */
+void sensorsAccAlignToGravity(Axis3f* in, Axis3f* out)
+{
+	Axis3f rx;
+	Axis3f ry;
+
+	// Rotate around x-axis
+	rx.x = in->x;
+	rx.y = in->y * cosRoll - in->z * sinRoll;
+	rx.z = in->y * sinRoll + in->z * cosRoll;
+
+	// Rotate around y-axis
+	ry.x = rx.x * cosPitch - rx.z * sinPitch;
+	ry.y = rx.y;
+	ry.z = -rx.x * sinPitch + rx.z * cosPitch;
+
+	out->x = ry.x;
+	out->y = ry.y;
+	out->z = ry.z;
+}
+
+void applyAxis3fLpf(lpf2pData *data, Axis3f* in)
+{
+	for (uint8_t i = 0; i < 3; i++) {
+		in->axis[i] = lpf2pApply(&data[i], in->axis[i]);
+	}
+}
+
 void processAccGyroMeasurements(const uint8_t *buffer)
 {
 	Axis3f accScaled;
@@ -101,6 +300,24 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 	int16_t gz = (((int16_t) buffer[12]) << 8) | buffer[13];
 
 	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
+
+	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
+
+	if (gyroBiasFound)
+	{
+		processAccScale(ax, ay, az);
+	}
+
+	sensors.gyro.x = -(gx - gyroBias.x) * SENSORS_DEG_PER_LSB_CFG;
+	sensors.gyro.y =  (gy - gyroBias.y) * SENSORS_DEG_PER_LSB_CFG;
+	sensors.gyro.z =  (gz - gyroBias.z) * SENSORS_DEG_PER_LSB_CFG;
+	applyAxis3fLpf((lpf2pData*)(&gyroLpf), &sensors.gyro);
+
+	accScaled.x = -(ax) * SENSORS_G_PER_LSB_CFG / accScale;
+	accScaled.y =  (ay) * SENSORS_G_PER_LSB_CFG / accScale;
+	accScaled.z =  (az) * SENSORS_G_PER_LSB_CFG / accScale;
+	sensorsAccAlignToGravity(&accScaled, &sensors.acc);
+	applyAxis3fLpf((lpf2pData*)(&accLpf), &sensors.acc);
 }
 
 void processMagnetometerMeasurements(const uint8_t *buffer)
@@ -170,6 +387,13 @@ void sensorsTask(void *param)
 		imu.readAllRaw(&imu, buffer, BUF_LEN);
 		processAccGyroMeasurements(&(buffer[0]));
 		processMagnetometerMeasurements(&(buffer[SENSORS_MPU6050_BUFF_LEN]));
+
+		vTaskSuspendAll();
+		xQueueOverwrite(accelerometerDataQueue, &sensors.acc);
+		xQueueOverwrite(gyroDataQueue, &sensors.gyro);
+		xQueueOverwrite(magnetometerDataQueue, &sensors.mag);
+		xTaskResumeAll();
+
 		vTaskDelay(100 / portTICK_RATE_MS);
 	}
 }

@@ -11,6 +11,6 @@ static lpf2pData accLpf[3];
 static lpf2pData gyroLpf[3];
 
 void Sensor_Init(Bus *bus);
-
+bool sensorsAreCalibrated();
 
 #endif

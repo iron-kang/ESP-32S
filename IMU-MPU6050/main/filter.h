@@ -2,6 +2,7 @@
 #define FILTER_H_
 #include <stdint.h>
 
+#include "common.h"
 #define IIR_SHIFT         8
 
 int16_t iirLPFilterSingle(int32_t in, int32_t attenuation,  int32_t* filt);

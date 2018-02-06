@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdint.h>
+#include "common.h"
 #include "hmc5883l.h"
 
 Vector _readRaw(HMC5883L *self);

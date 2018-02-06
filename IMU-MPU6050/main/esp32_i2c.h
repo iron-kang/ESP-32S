@@ -3,7 +3,7 @@
 
 #include "driver/i2c.h"
 #include "driver/gpio.h"
-#include "esp_err.h"
+#include "common.h"
 
 #define ACK_VAL      0x0
 #define NACK_VAL     0x1

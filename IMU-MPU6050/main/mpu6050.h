@@ -1,7 +1,7 @@
 #ifndef _MPU6050_H_
 #define _MPU6050_H_
 
-#include <stdbool.h>
+#include "common.h"
 #include "esp_err.h"
 #include "esp32_i2c.h"
 

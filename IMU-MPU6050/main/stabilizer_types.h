@@ -26,8 +26,7 @@
 #ifndef __STABILIZER_TYPES_H__
 #define __STABILIZER_TYPES_H__
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "common.h"
 #include "imu_types.h"
 
 /* Data structure used by the stabilizer subsystem.
