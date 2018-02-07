@@ -4,5 +4,6 @@
 #include "common.h"
 
 void Stabilizer_Init();
+bool stabilizerTest(void);
 
 #endif

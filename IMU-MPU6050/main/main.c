@@ -8,7 +8,7 @@
 #include "hmc5883l.h"
 #include "sdkconfig.h"
 #include "ssd1306.h"
-
+#include "stabilizer.h"
 
 #define OLED_SDI  12
 #define OLED_SDO  13
@@ -23,49 +23,18 @@ HMC5883L compass;
 SSD1306 ssd1306;
 Bus bus;
 
-#if 0
-void Task_IMU(void *arg)
-{
-    Vector norm;
-    uint8_t cnt = 0;
-    float heading;
-    float declinationAngle = (3.0 + (48.0 / 60.0)) / (180 / M_PI);
-
-    while (true)
-    {
-        i2c.setAddr(&i2c, IMUADDR);
-        mpu.getMotion(&mpu);
-        if (cnt == 30)
-        {
-            cnt = 0;
-            i2c.setAddr(&i2c, COMPASSADDR);
-            norm = compass.readNormalize(&compass);
-            // You can find your declination on: http://magnetic-declination.com/
-            heading = atan2(norm.y, norm.x);
-            heading -= declinationAngle;
-            if (heading < 0)
-                heading += 2 * M_PI;
- 
-            if (heading > 2 * M_PI)
-                heading -= 2 * M_PI;
-  
-            //printf("m(%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f)\n",
-              //  raw.x, raw.y, raw.z, norm.x, norm.y, norm.z); 
-            printf("head: %f\n", heading * 180/M_PI); 
-        }
-        //printf("a(%d, %d, %d), g(%d, %d, %d)\n", 
-          //      mpu.ax, mpu.ay, mpu.az,
-            //    mpu.gx, mpu.gy, mpu.gz);
-        cnt++;
-        vTaskDelay(1 / portTICK_RATE_MS);
-    }
-}
-#endif
-
 void init()
 {
+	bool pass = true;
+
     Bus_Init(&bus);
     Sensor_Init(&bus);
+    Stabilizer_Init();
+
+    pass &= stabilizerTest();
+
+    if (pass)
+    	printf("system OK\n");
 
 //    i2c.setAddr(&i2c, COMPASSADDR);
 //    compass.i2c = &i2c;

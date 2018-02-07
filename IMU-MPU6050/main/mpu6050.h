@@ -407,6 +407,12 @@
 #define MPU6050_G_PER_LSB_8      (float)((2 * 8) / 65536.0)
 #define MPU6050_G_PER_LSB_16     (float)((2 * 16) / 65536.0)
 
+// Test limits
+#define MPU6050_ST_GYRO_LOW      (-14.0)  // %
+#define MPU6050_ST_GYRO_HIGH     14.0  // %
+#define MPU6050_ST_ACCEL_LOW     (-14.0)  // %
+#define MPU6050_ST_ACCEL_HIGH    14.0  // %
+
 #define BUF_LEN (14 + 8 + 6*0)
 
 typedef struct mpu6050 
@@ -452,6 +458,8 @@ typedef struct mpu6050
     void (*setSlaveDelayEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
     void (*setIntDataReadyEnabled)(struct mpu6050 *self, bool enabled);
     void (*setSlaveEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
+    bool (*selfTest)(struct mpu6050 *self);
+    bool (*evaluateSelfTest)(struct mpu6050 *self, float low, float high, float value, char* string);
 
 } MPU6050;
 

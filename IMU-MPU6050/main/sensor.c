@@ -36,7 +36,9 @@ xQueueHandle accelerometerDataQueue;
 xQueueHandle gyroDataQueue;
 xQueueHandle magnetometerDataQueue;
 xQueueHandle barometerDataQueue;
-bool    gyroBiasFound = false;
+bool gyroBiasFound = false;
+bool isMpu6500TestPassed = false;
+bool  isAK8963TestPassed = false;
 
 MPU6050 imu;
 AK8963 mag;
@@ -354,6 +356,65 @@ void processBarometerMeasurements(const uint8_t *buffer)
   sensors.baro.temperature = LPS25H_TEMP_OFFSET + ((float) rawTemp / LPS25H_LSB_PER_CELSIUS);
   sensors.baro.asl = lps25hPressureToAltitude(&sensors.baro.pressure);
 #endif
+}
+
+bool sensorsReadGyro(Axis3f *gyro)
+{
+  return (pdTRUE == xQueueReceive(gyroDataQueue, gyro, 0));
+}
+
+bool sensorsReadAcc(Axis3f *acc)
+{
+  return (pdTRUE == xQueueReceive(accelerometerDataQueue, acc, 0));
+}
+
+bool sensorsReadMag(Axis3f *mag)
+{
+  return (pdTRUE == xQueueReceive(magnetometerDataQueue, mag, 0));
+}
+
+bool sensorsTest()
+{
+	bool testStatus = true;
+
+	// Try for 3 seconds so the quad has stabilized enough to pass the test
+	for (int i = 0; i < 300; i++)
+	{
+		if(imu.selfTest(&imu) == true)
+		{
+			isMpu6500TestPassed = true;
+			break;
+		}
+		else
+		{
+			vTaskDelay(M2T(10));
+		}
+	}
+	testStatus &= isMpu6500TestPassed;
+
+	if (testStatus)
+	{
+		isAK8963TestPassed = mag.SelfTest(&mag);
+		testStatus = isAK8963TestPassed;
+	}
+
+#ifdef SENSORS_ENABLE_PRESSURE_LPS25H
+	testStatus &= isBarometerPresent;
+	if (testStatus)
+	{
+		isLPS25HTestPassed = lps25hSelfTest();
+		testStatus = isLPS25HTestPassed;
+	}
+#endif
+	return testStatus;
+}
+
+void sensorsAcquire(sensorData_t *sensors, const uint32_t tick)
+{
+	sensorsReadGyro(&sensors->gyro);
+	sensorsReadAcc(&sensors->acc);
+	sensorsReadMag(&sensors->mag);
+//	sensorsReadBaro(&sensors->baro);
 }
 
 void sensorsSetupSlaveRead(void)
