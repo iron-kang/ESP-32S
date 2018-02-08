@@ -424,7 +424,6 @@ bool _evaluateSelfTest(MPU6050 *self, float low, float high, float value, char* 
  */
 bool _selfTest(MPU6050 *self)
 {
-	uint8_t rawData[6] = {0, 0, 0, 0, 0, 0};
 	uint8_t saveReg[5];
 	uint8_t selfTest[6];
 	int32_t gAvg[3]={0}, aAvg[3]={0}, aSTAvg[3]={0}, gSTAvg[3]={0};
@@ -460,14 +459,14 @@ bool _selfTest(MPU6050 *self)
 	{
 		// get average current values of gyro and acclerometer
 		self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ACCEL_XOUT_H, self->buffer, 6);// Read the six raw data registers into data array
-		aAvg[0] += (int16_t)(((int16_t)rawData[0] << 8) | rawData[1]) ; // Turn the MSB and LSB into a signed 16-bit value
-		aAvg[1] += (int16_t)(((int16_t)rawData[2] << 8) | rawData[3]) ;
-		aAvg[2] += (int16_t)(((int16_t)rawData[4] << 8) | rawData[5]) ;
+		aAvg[0] += (int16_t)(((int16_t)self->buffer[0] << 8) | self->buffer[1]) ; // Turn the MSB and LSB into a signed 16-bit value
+		aAvg[1] += (int16_t)(((int16_t)self->buffer[2] << 8) | self->buffer[3]) ;
+		aAvg[2] += (int16_t)(((int16_t)self->buffer[4] << 8) | self->buffer[5]) ;
 
 		self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_GYRO_XOUT_H, self->buffer, 6);// Read the six raw data registers sequentially into data array
-		gAvg[0] += (int16_t)((int16_t)rawData[0] << 8) | rawData[1]; // Turn the MSB and LSB into a signed 16-bit value
-		gAvg[1] += (int16_t)((int16_t)rawData[2] << 8) | rawData[3];
-		gAvg[2] += (int16_t)((int16_t)rawData[4] << 8) | rawData[5];
+		gAvg[0] += (int16_t)((int16_t)self->buffer[0] << 8) | self->buffer[1]; // Turn the MSB and LSB into a signed 16-bit value
+		gAvg[1] += (int16_t)((int16_t)self->buffer[2] << 8) | self->buffer[3];
+		gAvg[2] += (int16_t)((int16_t)self->buffer[4] << 8) | self->buffer[5];
 	}
 
 	for (i = 0; i < 3; i++)
@@ -489,14 +488,14 @@ bool _selfTest(MPU6050 *self)
 	{
 		// get average self-test values of gyro and acclerometer
 		self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ACCEL_XOUT_H, self->buffer, 6);// Read the six raw data registers into data array
-		aSTAvg[0] += (int16_t)(((int16_t)rawData[0] << 8) | rawData[1]) ; // Turn the MSB and LSB into a signed 16-bit value
-		aSTAvg[1] += (int16_t)(((int16_t)rawData[2] << 8) | rawData[3]) ;
-		aSTAvg[2] += (int16_t)(((int16_t)rawData[4] << 8) | rawData[5]) ;
+		aSTAvg[0] += (int16_t)(((int16_t)self->buffer[0] << 8) | self->buffer[1]) ; // Turn the MSB and LSB into a signed 16-bit value
+		aSTAvg[1] += (int16_t)(((int16_t)self->buffer[2] << 8) | self->buffer[3]) ;
+		aSTAvg[2] += (int16_t)(((int16_t)self->buffer[4] << 8) | self->buffer[5]) ;
 
 		self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_GYRO_XOUT_H, self->buffer, 6);// Read the six raw data registers sequentially into data array
-		gSTAvg[0] += (int16_t)(((int16_t)rawData[0] << 8) | rawData[1]) ; // Turn the MSB and LSB into a signed 16-bit value
-		gSTAvg[1] += (int16_t)(((int16_t)rawData[2] << 8) | rawData[3]) ;
-		gSTAvg[2] += (int16_t)(((int16_t)rawData[4] << 8) | rawData[5]) ;
+		gSTAvg[0] += (int16_t)(((int16_t)self->buffer[0] << 8) | self->buffer[1]) ; // Turn the MSB and LSB into a signed 16-bit value
+		gSTAvg[1] += (int16_t)(((int16_t)self->buffer[2] << 8) | self->buffer[3]) ;
+		gSTAvg[2] += (int16_t)(((int16_t)self->buffer[4] << 8) | self->buffer[5]) ;
 	}
 
 	for (i =0; i < 3; i++)
@@ -569,6 +568,7 @@ bool _selfTest(MPU6050 *self)
 		self->evaluateSelfTest(self, MPU6050_ST_ACCEL_LOW, MPU6050_ST_ACCEL_HIGH, aDiff[1], "acc Y") &&
 		self->evaluateSelfTest(self, MPU6050_ST_ACCEL_LOW, MPU6050_ST_ACCEL_HIGH, aDiff[2], "acc Z"))
 	{
+		printf("MPU6050 self test [OK].\n");
 		return true;
 	}
 	else

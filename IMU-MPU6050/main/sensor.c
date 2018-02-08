@@ -255,7 +255,7 @@ bool processAccScale(int16_t ax, int16_t ay, int16_t az)
 
 bool sensorsAreCalibrated()
 {
-  return gyroBiasFound;
+	return gyroBiasFound;
 }
 
 /**
@@ -301,7 +301,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 	int16_t gx = (((int16_t) buffer[10]) << 8) | buffer[11];
 	int16_t gz = (((int16_t) buffer[12]) << 8) | buffer[13];
 
-	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
+	//printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 
@@ -333,7 +333,7 @@ void processMagnetometerMeasurements(const uint8_t *buffer)
 	    sensors.mag.x = (float)headingx / MAG_GAUSS_PER_LSB;
 	    sensors.mag.y = (float)headingy / MAG_GAUSS_PER_LSB;
 	    sensors.mag.z = (float)headingz / MAG_GAUSS_PER_LSB;
-	    printf("mag(%f, %f, %f)\n", sensors.mag.x, sensors.mag.y, sensors.mag.z);
+	    //printf("mag(%f, %f, %f)\n", sensors.mag.x, sensors.mag.y, sensors.mag.z);
 	}
 }
 
@@ -392,6 +392,7 @@ bool sensorsTest()
 	}
 	testStatus &= isMpu6500TestPassed;
 
+	printf("test status: %d\n", testStatus);
 	if (testStatus)
 	{
 		isAK8963TestPassed = mag.SelfTest(&mag);
@@ -455,7 +456,7 @@ void sensorsTask(void *param)
 		xQueueOverwrite(magnetometerDataQueue, &sensors.mag);
 		xTaskResumeAll();
 
-		vTaskDelay(100 / portTICK_RATE_MS);
+//		vTaskDelay(100 / portTICK_RATE_MS);
 	}
 }
 

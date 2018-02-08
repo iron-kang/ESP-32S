@@ -29,12 +29,13 @@ void init()
 
     Bus_Init(&bus);
     Sensor_Init(&bus);
-    Stabilizer_Init();
 
-    pass &= stabilizerTest();
+//    pass &= stabilizerTest();
+//
+//    if (pass)
+//    	printf("system OK\n");
 
-    if (pass)
-    	printf("system OK\n");
+    Stabilizer();
 
 //    i2c.setAddr(&i2c, COMPASSADDR);
 //    compass.i2c = &i2c;

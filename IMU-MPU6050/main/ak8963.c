@@ -94,7 +94,7 @@ bool _SelfTest(AK8963 *self)
 	uint8_t timeout = 20;
 
 	// Save register values
-	if (self->i2c->read(self->i2c, self->devAddr, AK8963_RA_CNTL, &confSave, 1) == false)
+	if (self->i2c->read(self->i2c, self->devAddr, AK8963_RA_CNTL, &confSave, 1) != ESP_OK)
 	{
 		// TODO: error handling
 		return false;
@@ -111,6 +111,7 @@ bool _SelfTest(AK8963 *self)
 		vTaskDelay(M2T(1));
 	}
 	self->GetHeading(self, &mx, &my, &mz);
+	printf("m(%d, %d, %d)\n", mx, my, mz);
 	// Power down
 	self->SetMode(self, AK8963_MODE_POWERDOWN);
 

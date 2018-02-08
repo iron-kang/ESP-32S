@@ -14,9 +14,9 @@ state_t state;
 
 void stabilizerTask(void* param);
 
-void Stabilizer_Init()
+void Stabilizer()
 {
-	//xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL);
+	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL);
 }
 
 bool stabilizerTest(void)
@@ -35,19 +35,19 @@ void stabilizerTask(void* param)
 {
 	uint32_t tick = 0;
 	uint32_t lastWakeTime;
-	//vTaskSetApplicationTaskTag(0, (void*)TASK_STABILIZER_ID_NBR);
+//	vTaskSetApplicationTaskTag(0, (void*)TASK_STABILIZER_ID_NBR);
 
 
 	// Wait for sensors to be calibrated
 	lastWakeTime = xTaskGetTickCount ();
 	while (!sensorsAreCalibrated())
 	{
-		vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
+		vTaskDelayUntil(&lastWakeTime, 1);
 	}
 
 	while(1)
 	{
-		vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
+		vTaskDelayUntil(&lastWakeTime, 1);
 
 //		getExtPosition(&state);
 

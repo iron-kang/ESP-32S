@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-void Stabilizer_Init();
+void Stabilizer();
 bool stabilizerTest(void);
 
 #endif
