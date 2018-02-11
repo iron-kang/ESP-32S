@@ -5,6 +5,7 @@
 #include "mpu6050.h"
 #include "ak8963.h"
 #include "config.h"
+#include "led.h"
 
 #define SENSORS_TASK_NAME           "SENSORS"
 #define MAG_GAUSS_PER_LSB           666.7f
@@ -36,6 +37,7 @@ xQueueHandle accelerometerDataQueue;
 xQueueHandle gyroDataQueue;
 xQueueHandle magnetometerDataQueue;
 xQueueHandle barometerDataQueue;
+xSemaphoreHandle sensorsDataReady;
 bool gyroBiasFound = false;
 bool isMpu6500TestPassed = false;
 bool  isAK8963TestPassed = false;
@@ -59,8 +61,33 @@ void processBarometerMeasurements(const uint8_t *buffer);
 void sensorsBiasObjInit(BiasObj* bias);
 void SensorTask_Init();
 
+void IRAM_ATTR mpu6050_isr_handler(void* arg)
+{
+	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+	xSemaphoreGiveFromISR(sensorsDataReady, &xHigherPriorityTaskWoken);
+
+	portYIELD_FROM_ISR();
+#if 0
+	if (xHigherPriorityTaskWoken)
+	{
+		portYIELD();
+	}
+#endif
+}
+
 void Sensor_Init(Bus *bus)
 {
+	gpio_config_t io_conf;
+
+	sensorsDataReady = xSemaphoreCreateBinary();
+	io_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
+	io_conf.pin_bit_mask = (1ULL<<PIN_MPU6050_INT);;
+	io_conf.mode = GPIO_MODE_INPUT;
+	io_conf.pull_up_en = 1;
+	gpio_config(&io_conf);
+	gpio_install_isr_service(0);
+	gpio_isr_handler_add(PIN_MPU6050_INT, mpu6050_isr_handler, (void*) PIN_MPU6050_INT);
+
 	sensorsBiasObjInit(&gyroBiasRunning);
 	imu.i2c = &bus->i2c;
 	mag.i2c = &bus->i2c;
@@ -73,6 +100,7 @@ void Sensor_Init(Bus *bus)
 	}
 	else
 	{
+		LED_ON(PIN_LED_YELLOW);
 		printf("MPU9250 I2C connection [FAIL].\n");
 		return;
 	}
@@ -97,7 +125,6 @@ void Sensor_Init(Bus *bus)
 	imu.setFullScaleAccelRange(&imu, MPU6050_ACCEL_FS_16);
 	// Set accelerometer digital low-pass bandwidth
 	imu.setAccelDLPF(&imu, MPU6050_ACCEL_DLPF_BW_41);
-
 	imu.setRate(&imu, 0);
 	imu.setDLPFMode(&imu, MPU6050_DLPF_BW_98);
 
@@ -116,8 +143,14 @@ void Sensor_Init(Bus *bus)
 	}
 	else
 	{
+		LED_ON(PIN_LED_YELLOW);
 		printf("AK8963 I2C connection [FAIL].\n");
 	}
+
+	cosPitch = cosf(0 * (float) M_PI/180);
+	sinPitch = sinf(0 * (float) M_PI/180);
+	cosRoll = cosf(0 * (float) M_PI/180);
+	sinRoll = sinf(0 * (float) M_PI/180);
 
 	SensorTask_Init();
 }
@@ -301,7 +334,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 	int16_t gx = (((int16_t) buffer[10]) << 8) | buffer[11];
 	int16_t gz = (((int16_t) buffer[12]) << 8) | buffer[13];
 
-	//printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
+//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 
@@ -446,17 +479,20 @@ void sensorsTask(void *param)
 
 	while (true)
 	{
-		imu.readAllRaw(&imu, buffer, BUF_LEN);
-		processAccGyroMeasurements(&(buffer[0]));
-		processMagnetometerMeasurements(&(buffer[SENSORS_MPU6050_BUFF_LEN]));
+		if (pdTRUE == xSemaphoreTake(sensorsDataReady, portMAX_DELAY))
+		{
+//			LED_Toggle(PIN_LED_YELLOW);
+			imu.readAllRaw(&imu, buffer, BUF_LEN);
+			processAccGyroMeasurements(&(buffer[0]));
+			processMagnetometerMeasurements(&(buffer[SENSORS_MPU6050_BUFF_LEN]));
 
-		vTaskSuspendAll();
-		xQueueOverwrite(accelerometerDataQueue, &sensors.acc);
-		xQueueOverwrite(gyroDataQueue, &sensors.gyro);
-		xQueueOverwrite(magnetometerDataQueue, &sensors.mag);
-		xTaskResumeAll();
+			vTaskSuspendAll();
+			xQueueOverwrite(accelerometerDataQueue, &sensors.acc);
+			xQueueOverwrite(gyroDataQueue, &sensors.gyro);
+			xQueueOverwrite(magnetometerDataQueue, &sensors.mag);
+			xTaskResumeAll();
 
-//		vTaskDelay(100 / portTICK_RATE_MS);
+		}
 	}
 }
 
@@ -468,5 +504,6 @@ void SensorTask_Init()
 	barometerDataQueue = xQueueCreate(1, sizeof(baro_t));
 
 	xTaskCreate(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL);
+//	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);
 }
 

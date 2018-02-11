@@ -9,6 +9,9 @@
 #include "sdkconfig.h"
 #include "ssd1306.h"
 #include "stabilizer.h"
+#include "led.h"
+#include "motor.h"
+#include "mqtt.h"
 
 #define OLED_SDI  12
 #define OLED_SDO  13
@@ -27,8 +30,11 @@ void init()
 {
 	bool pass = true;
 
+	LED_Init();
     Bus_Init(&bus);
     Sensor_Init(&bus);
+    MQTT_Init();
+//    Motor_Init();
 
 //    pass &= stabilizerTest();
 //
@@ -57,10 +63,25 @@ void init()
 //    ssd1306.SSD1306_display(&ssd1306);
 }
 
+void mqtt_task(void *pvParameters)
+{
+	state_t *state;
+	uint32_t lastWakeTime;
+
+	lastWakeTime = xTaskGetTickCount ();
+	while (true)
+	{
+		state = stablizer_GetState();
+		MQTT_Update(state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
+		vTaskDelayUntil(&lastWakeTime, 1000);
+	}
+}
+
 void app_main()
 {
     init();
 
-    //xTaskCreate(Task_IMU, "Task-IMU", 2048, NULL, 2, NULL);
+    xTaskCreate(&mqtt_task, "mqtt_task", 8192, NULL, 3, NULL);
+
 }
 

@@ -1,5 +1,6 @@
 #include "estimator.h"
 #include "sensfusion6.h"
+#include "led.h"
 
 #define ATTITUDE_UPDATE_RATE RATE_250_HZ
 #define ATTITUDE_UPDATE_DT 1.0/ATTITUDE_UPDATE_RATE
@@ -78,16 +79,21 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
 {
 	if (RATE_DO_EXECUTE(ATTITUDE_UPDATE_RATE, tick))
 	{
+		LED_Toggle(PIN_LED_YELLOW);
 	    sensfusion6UpdateQ(sensorData->gyro.x, sensorData->gyro.y, sensorData->gyro.z,
 	                       sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
 	                       ATTITUDE_UPDATE_DT);
+	   // printf("--a(%.2f, %.2f, %.2f), g(%.2f, %.2f, %.2f)\n", sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
+	    //				sensorData->gyro.x, sensorData->gyro.y, sensorData->gyro.z);
 	    sensfusion6GetEulerRPY(&state->attitude.roll, &state->attitude.pitch, &state->attitude.yaw);
+
 
 	    state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
 	                                                    sensorData->acc.y,
 	                                                    sensorData->acc.z);
-	    printf("roll: %f, pitch: %f, yaw: %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
+//	    printf("roll: %f, pitch: %f, yaw: %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
 	    positionUpdateVelocity(state->acc.z, ATTITUDE_UPDATE_DT);
+
 	}
 
 	if (RATE_DO_EXECUTE(POS_UPDATE_RATE, tick))
