@@ -105,6 +105,8 @@ void Sensor_Init(Bus *bus)
 		return;
 	}
 
+//	imu.calibrate(&imu);
+
 	imu.reset(&imu);
 	vTaskDelay(M2T(50));
 	imu.setSleepEnabled(&imu, false);
@@ -327,14 +329,14 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 {
 	Axis3f accScaled;
 
-	int16_t ay = (((int16_t) buffer[0]) << 8) | buffer[1];
-	int16_t ax = (((int16_t) buffer[2]) << 8) | buffer[3];
+	int16_t ax = (((int16_t) buffer[0]) << 8) | buffer[1];
+	int16_t ay = (((int16_t) buffer[2]) << 8) | buffer[3];
 	int16_t az = (((int16_t) buffer[4]) << 8) | buffer[5];
-	int16_t gy = (((int16_t) buffer[8]) << 8) | buffer[9];
-	int16_t gx = (((int16_t) buffer[10]) << 8) | buffer[11];
+	int16_t gx = (((int16_t) buffer[8]) << 8) | buffer[9];
+	int16_t gy = (((int16_t) buffer[10]) << 8) | buffer[11];
 	int16_t gz = (((int16_t) buffer[12]) << 8) | buffer[13];
 
-//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
+	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 
@@ -343,12 +345,12 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 		processAccScale(ax, ay, az);
 	}
 
-	sensors.gyro.x = -(gx - gyroBias.x) * SENSORS_DEG_PER_LSB_CFG;
+	sensors.gyro.x =  (gx - gyroBias.x) * SENSORS_DEG_PER_LSB_CFG;
 	sensors.gyro.y =  (gy - gyroBias.y) * SENSORS_DEG_PER_LSB_CFG;
 	sensors.gyro.z =  (gz - gyroBias.z) * SENSORS_DEG_PER_LSB_CFG;
 	applyAxis3fLpf((lpf2pData*)(&gyroLpf), &sensors.gyro);
 
-	accScaled.x = -(ax) * SENSORS_G_PER_LSB_CFG / accScale;
+	accScaled.x =  (ax) * SENSORS_G_PER_LSB_CFG / accScale;
 	accScaled.y =  (ay) * SENSORS_G_PER_LSB_CFG / accScale;
 	accScaled.z =  (az) * SENSORS_G_PER_LSB_CFG / accScale;
 	sensorsAccAlignToGravity(&accScaled, &sensors.acc);
@@ -363,10 +365,16 @@ void processMagnetometerMeasurements(const uint8_t *buffer)
 	    int16_t headingy = (((int16_t) buffer[4]) << 8) | buffer[3];
 	    int16_t headingz = (((int16_t) buffer[6]) << 8) | buffer[5];
 
-	    sensors.mag.x = (float)headingx / MAG_GAUSS_PER_LSB;
-	    sensors.mag.y = (float)headingy / MAG_GAUSS_PER_LSB;
-	    sensors.mag.z = (float)headingz / MAG_GAUSS_PER_LSB;
-	    //printf("mag(%f, %f, %f)\n", sensors.mag.x, sensors.mag.y, sensors.mag.z);
+//	    sensors.mag.x = (float)headingx / MAG_GAUSS_PER_LSB;
+//	    sensors.mag.y = (float)headingy / MAG_GAUSS_PER_LSB;
+//	    sensors.mag.z = (float)headingz / MAG_GAUSS_PER_LSB;
+	    sensors.mag.x = headingx*mag.mRes*mag.magCalibration[0] - mag.magBias[0];
+	    sensors.mag.y = headingy*mag.mRes*mag.magCalibration[1] - mag.magBias[1];
+	    sensors.mag.z = headingz*mag.mRes*mag.magCalibration[2] - mag.magBias[2];
+	    sensors.mag.x *= mag.magScale[0];
+	    sensors.mag.y *= mag.magScale[1];
+	    sensors.mag.z *= mag.magScale[2];
+//	    printf("mag(%f, %f, %f)\n", sensors.mag.x, sensors.mag.y, sensors.mag.z);
 	}
 }
 

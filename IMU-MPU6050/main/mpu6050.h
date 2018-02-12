@@ -124,6 +124,12 @@
 #define MPU6050_RA_FIFO_COUNTL      0x73
 #define MPU6050_RA_FIFO_R_W         0x74
 #define MPU6050_RA_WHO_AM_I         0x75
+#define MPU6050_RA_XA_OFFSET_H      0x77
+#define MPU6050_RA_XA_OFFSET_L      0x78
+#define MPU6050_RA_YA_OFFSET_H      0x7A
+#define MPU6050_RA_YA_OFFSET_L      0x7B
+#define MPU6050_RA_ZA_OFFSET_H      0x7D
+#define MPU6050_RA_ZA_OFFSET_L      0x7E
 #define MPU6050_SELF_TEST_XA_1_BIT     0x07
 #define MPU6050_SELF_TEST_XA_1_LENGTH  0x03
 #define MPU6050_SELF_TEST_XA_2_BIT     0x05
@@ -460,6 +466,7 @@ typedef struct mpu6050
     void (*setSlaveEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
     bool (*selfTest)(struct mpu6050 *self);
     bool (*evaluateSelfTest)(struct mpu6050 *self, float low, float high, float value, char* string);
+    void (*calibrate)(struct mpu6050 *self);
 
 } MPU6050;
 

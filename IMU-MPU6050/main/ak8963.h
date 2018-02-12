@@ -58,11 +58,20 @@
 #define AK8963_ST_Z_MIN           (int16_t)(-3200)
 #define AK8963_ST_Z_MAX           (int16_t)(-800)
 
+enum Mscale {
+  MFS_14BITS = 0, // 0.6 mG per LSB
+  MFS_16BITS      // 0.15 mG per LSB
+};
+
 typedef struct ak8963
 {
 	I2C_CONFIG *i2c;
 	uint8_t devAddr;
 	uint8_t buffer[6];
+	float magBias[3];
+	float magScale[3];
+	float magCalibration[3];
+	float mRes;
 
 	bool (*TestConnection)(struct ak8963 *self);
 	bool (*SelfTest)(struct ak8963 *self);
@@ -102,6 +111,8 @@ typedef struct ak8963
 	void (*SetAdjustmentY)(struct ak8963 *self, uint8_t y);
 	uint8_t (*GetAdjustmentZ)(struct ak8963 *self);
 	void (*SetAdjustmentZ)(struct ak8963 *self, uint8_t z);
+	void (*readMagData)(struct ak8963 *self, int16_t * destination);
+	void (*Calibrate)(struct ak8963 *self);
 
 }AK8963;
 

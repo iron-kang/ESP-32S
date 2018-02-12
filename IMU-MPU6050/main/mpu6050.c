@@ -68,6 +68,7 @@ void _setIntDataReadyEnabled(MPU6050 *self, bool enabled);
 void _setSlaveEnabled(MPU6050 *self, uint8_t num, bool enabled);
 bool _selfTest(MPU6050 *self);
 bool _evaluateSelfTest(MPU6050 *self, float low, float high, float value, char* string);
+void _calibrate(MPU6050 *self);
 
 void MPU6050_Init(MPU6050 *mpu, uint8_t addr)
 {
@@ -104,6 +105,7 @@ void MPU6050_Init(MPU6050 *mpu, uint8_t addr)
     mpu->setSlaveEnabled          = _setSlaveEnabled;
     mpu->selfTest                 = _selfTest;
     mpu->evaluateSelfTest         = _evaluateSelfTest;
+    mpu->calibrate                = _calibrate;
 }
 
 void _reset(MPU6050 *self)
@@ -575,5 +577,161 @@ bool _selfTest(MPU6050 *self)
 	{
 		return false;
 	}
+}
+
+void _calibrate(MPU6050 *self)
+{
+	uint8_t data[12];
+	uint16_t ii, packet_count, fifo_count;
+	int32_t gyro_bias[3]  = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
+
+	// reset device
+	self->buffer[0] = MPU6050_RA_PWR_MGMT_1 ;
+	self->buffer[1] = 0x80;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	vTaskDelay(100 / portTICK_PERIOD_MS);
+
+	// Configure device for bias calculation
+	self->buffer[0] = MPU6050_RA_INT_ENABLE ;	// Disable all interrupts
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_FIFO_EN ;		// Disable FIFO
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_PWR_MGMT_1 ;	// Turn on internal clock source
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_I2C_MST_CTRL ;	// Disable I2C master
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_USER_CTRL ;	// Disable FIFO and I2C master modes
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_USER_CTRL ;	// Reset FIFO and DMP
+	self->buffer[1] = 0x0C;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	vTaskDelay(15 / portTICK_PERIOD_MS);
+
+	// Configure MPU6050 gyro and accelerometer for bias calculation
+	self->buffer[0] = MPU6050_RA_CONFIG ;		// Set low-pass filter to 188 Hz
+	self->buffer[1] = 0x01;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_SMPLRT_DIV ;	// Set sample rate to 1 kHz
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_GYRO_CONFIG ;	// Set gyro full-scale to 250 degrees per second, maximum sensitivity
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ACCEL_CONFIG ;	// Set accelerometer full-scale to 2 g, maximum sensitivity
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+
+	uint16_t  gyrosensitivity  = 131;   // = 131 LSB/degrees/sec
+	uint16_t  accelsensitivity = 16384;  // = 16384 LSB/g
+
+	// Configure FIFO to capture accelerometer and gyro data for bias calculation
+	self->buffer[0] = MPU6050_RA_USER_CTRL ;	// Enable FIFO
+	self->buffer[1] = 0x40;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_FIFO_EN ;		// Enable gyro and accelerometer sensors for FIFO  (max size 512 bytes in MPU-9150)
+	self->buffer[1] = 0x78;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	vTaskDelay(40 / portTICK_PERIOD_MS);// accumulate 40 samples in 40 milliseconds = 480 bytes
+
+	// At end of sample accumulation, turn off FIFO sensor read
+	self->buffer[0] = MPU6050_RA_FIFO_EN ;		// Enable gyro and accelerometer sensors for FIFO  (max size 512 bytes in MPU-9150)
+	self->buffer[1] = 0x00;
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_FIFO_COUNTH, &data[0], 2);
+	fifo_count = ((uint16_t)data[0] << 8) | data[1];
+	packet_count = fifo_count/12;// How many sets of full gyro and accelerometer data for averaging
+
+	for (ii = 0; ii < packet_count; ii++)
+	{
+		int16_t accel_temp[3] = {0, 0, 0}, gyro_temp[3] = {0, 0, 0};
+		self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_FIFO_R_W, &data[0], 12);
+		accel_temp[0] = (int16_t) (((int16_t)data[0] << 8) | data[1]  ) ;  // Form signed 16-bit integer for each sample in FIFO
+		accel_temp[1] = (int16_t) (((int16_t)data[2] << 8) | data[3]  ) ;
+		accel_temp[2] = (int16_t) (((int16_t)data[4] << 8) | data[5]  ) ;
+		gyro_temp[0]  = (int16_t) (((int16_t)data[6] << 8) | data[7]  ) ;
+		gyro_temp[1]  = (int16_t) (((int16_t)data[8] << 8) | data[9]  ) ;
+		gyro_temp[2]  = (int16_t) (((int16_t)data[10] << 8) | data[11]) ;
+
+		accel_bias[0] += (int32_t) accel_temp[0]; // Sum individual signed 16-bit biases to get accumulated signed 32-bit biases
+		accel_bias[1] += (int32_t) accel_temp[1];
+		accel_bias[2] += (int32_t) accel_temp[2];
+		gyro_bias[0]  += (int32_t) gyro_temp[0];
+		gyro_bias[1]  += (int32_t) gyro_temp[1];
+		gyro_bias[2]  += (int32_t) gyro_temp[2];
+	}
+
+	accel_bias[0] /= (int32_t) packet_count; // Normalize sums to get average count biases
+	accel_bias[1] /= (int32_t) packet_count;
+	accel_bias[2] /= (int32_t) packet_count;
+	gyro_bias[0]  /= (int32_t) packet_count;
+	gyro_bias[1]  /= (int32_t) packet_count;
+	gyro_bias[2]  /= (int32_t) packet_count;
+
+	if(accel_bias[2] > 0L) {accel_bias[2] -= (int32_t) accelsensitivity;}  // Remove gravity from the z-axis accelerometer bias calculation
+	else {accel_bias[2] += (int32_t) accelsensitivity;}
+
+	data[0] = (-gyro_bias[0]/4  >> 8) & 0xFF; // Divide by 4 to get 32.9 LSB per deg/s to conform to expected bias input format
+	data[1] = (-gyro_bias[0]/4)       & 0xFF; // Biases are additive, so change sign on calculated average gyro biases
+	data[2] = (-gyro_bias[1]/4  >> 8) & 0xFF;
+	data[3] = (-gyro_bias[1]/4)       & 0xFF;
+	data[4] = (-gyro_bias[2]/4  >> 8) & 0xFF;
+	data[5] = (-gyro_bias[2]/4)       & 0xFF;
+
+	self->buffer[0] = MPU6050_RA_XG_OFFS_USRH ;
+	self->buffer[1] = data[0];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_XG_OFFS_USRL ;
+	self->buffer[1] = data[1];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_YG_OFFS_USRH ;
+	self->buffer[1] = data[2];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_YG_OFFS_USRL ;
+	self->buffer[1] = data[3];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ZG_OFFS_USRH ;
+	self->buffer[1] = data[4];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ZG_OFFS_USRL ;
+	self->buffer[1] = data[5];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+
+	printf("gyro bias: %d, %d, %d\n", (data[0]<<8)+data[1], (data[2]<<8)+data[3], (data[4]<<8)+data[5]);
+
+	int32_t accel_bias_reg[3] = {0, 0, 0}; // A place to hold the factory accelerometer trim biases
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_XA_OFFSET_H, &data[0], 2);
+	accel_bias_reg[0] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_YA_OFFSET_H, &data[0], 2);
+	accel_bias_reg[1] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ZA_OFFSET_H, &data[0], 2);
+	accel_bias_reg[2] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+
+	uint32_t mask = 1uL; // Define mask for temperature compensation bit 0 of lower byte of accelerometer bias registers
+	uint8_t mask_bit[3] = {0, 0, 0}; // Define array to hold mask bit for each accelerometer bias axis
+
+	for(ii = 0; ii < 3; ii++) {
+		if((accel_bias_reg[ii] & mask)) mask_bit[ii] = 0x01; // If temperature compensation bit is set, record that fact in mask_bit
+	}
+
+	// Construct total accelerometer bias, including calculated average accelerometer bias from above
+	accel_bias_reg[0] -= (accel_bias[0]/8); // Subtract calculated averaged accelerometer bias scaled to 2048 LSB/g (16 g full scale)
+	accel_bias_reg[1] -= (accel_bias[1]/8);
+	accel_bias_reg[2] -= (accel_bias[2]/8);
+
+	data[0] = (accel_bias_reg[0] >> 8) & 0xFF;
+	data[1] = (accel_bias_reg[0])      & 0xFF;
+	data[1] = data[1] | mask_bit[0]; // preserve temperature compensation bit when writing back to accelerometer bias registers
+	data[2] = (accel_bias_reg[1] >> 8) & 0xFF;
+	data[3] = (accel_bias_reg[1])      & 0xFF;
+	data[3] = data[3] | mask_bit[1]; // preserve temperature compensation bit when writing back to accelerometer bias registers
+	data[4] = (accel_bias_reg[2] >> 8) & 0xFF;
+	data[5] = (accel_bias_reg[2])      & 0xFF;
+	data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
+
 }
 

@@ -79,9 +79,10 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
 {
 	if (RATE_DO_EXECUTE(ATTITUDE_UPDATE_RATE, tick))
 	{
-		LED_Toggle(PIN_LED_YELLOW);
+//		LED_Toggle(PIN_LED_YELLOW);
 	    sensfusion6UpdateQ(sensorData->gyro.x, sensorData->gyro.y, sensorData->gyro.z,
 	                       sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
+						   sensorData->mag.x*0, sensorData->mag.y*0, sensorData->mag.z*0,
 	                       ATTITUDE_UPDATE_DT);
 	   // printf("--a(%.2f, %.2f, %.2f), g(%.2f, %.2f, %.2f)\n", sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
 	    //				sensorData->gyro.x, sensorData->gyro.y, sensorData->gyro.z);

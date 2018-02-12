@@ -24,6 +24,8 @@ uint8_t _GetAdjustmentY(AK8963 *self);
 void _SetAdjustmentY(AK8963 *self, uint8_t y);
 uint8_t _GetAdjustmentZ(AK8963 *self);
 void _SetAdjustmentZ(AK8963 *self, uint8_t z);
+void _readMagData(AK8963 *self, int16_t * destination);
+void _Calibrate(AK8963 *self);
 
 /** Evaluate the values from a HMC8335L self test.
  * @param min The min limit of the self test
@@ -71,6 +73,33 @@ void AK8963Init(AK8963 *mag, uint8_t addr)
 	mag->SetAdjustmentY    = _SetAdjustmentY;
 	mag->GetAdjustmentZ    = _GetAdjustmentZ;
 	mag->SetAdjustmentZ    = _SetAdjustmentZ;
+	mag->readMagData       = _readMagData;
+	mag->Calibrate         = _Calibrate;
+
+	mag->mRes = 10.*4912./32760.0;
+	uint8_t rawData[3];
+	mag->buffer[0] = AK8963_RA_CNTL;
+	mag->buffer[1] =0x00;
+	mag->i2c->write(mag->i2c, mag->devAddr, mag->buffer, 2);
+	vTaskDelay(10 / portTICK_PERIOD_MS);
+	mag->buffer[0] = AK8963_RA_CNTL;
+	mag->buffer[1] =0x0F;
+	mag->i2c->write(mag->i2c, mag->devAddr, mag->buffer, 2);
+	vTaskDelay(10 / portTICK_PERIOD_MS);
+
+	mag->i2c->read(mag->i2c, mag->devAddr, AK8963_RA_ASAX, &rawData[0], 3);
+	mag->magCalibration[0] =  (float)(rawData[0] - 128)/256. + 1.;   // Return x-axis sensitivity adjustment values, etc.
+	mag->magCalibration[1] =  (float)(rawData[1] - 128)/256. + 1.;
+	mag->magCalibration[2] =  (float)(rawData[2] - 128)/256. + 1.;
+
+	mag->buffer[0] = AK8963_RA_CNTL;
+	mag->buffer[1] =0x00;
+	mag->i2c->write(mag->i2c, mag->devAddr, mag->buffer, 2);
+	vTaskDelay(10 / portTICK_PERIOD_MS);
+
+	mag->buffer[0] = AK8963_RA_CNTL;
+	mag->buffer[1] = MFS_16BITS << 4 | 0x06;
+	mag->i2c->write(mag->i2c, mag->devAddr, mag->buffer, 2);
 }
 
 /** Verify the I2C connection.
@@ -282,4 +311,59 @@ void _SetAdjustmentZ(AK8963 *self, uint8_t z)
 	self->buffer[0] = AK8963_RA_ASAZ;
 	self->buffer[1] = z;
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+}
+
+void _Calibrate(AK8963 *self)
+{
+	uint16_t ii = 0, sample_count = 0;
+	int32_t mag_bias[3] = {0, 0, 0}, mag_scale[3] = {0, 0, 0};
+	int16_t mag_max[3] = {-32767, -32767, -32767}, mag_min[3] = {32767, 32767, 32767}, mag_temp[3] = {0, 0, 0};
+
+
+	sample_count = 1500;
+	for(ii = 0; ii < sample_count; ii++) {
+		self->readMagData(self, mag_temp);
+		for (int jj = 0; jj < 3; jj++) {
+			if(mag_temp[jj] > mag_max[jj]) mag_max[jj] = mag_temp[jj];
+			if(mag_temp[jj] < mag_min[jj]) mag_min[jj] = mag_temp[jj];
+		}
+		vTaskDelay(12 / portTICK_PERIOD_MS);
+	}
+
+	// Get hard iron correction
+	mag_bias[0]  = (mag_max[0] + mag_min[0])/2;  // get average x mag bias in counts
+	mag_bias[1]  = (mag_max[1] + mag_min[1])/2;  // get average y mag bias in counts
+	mag_bias[2]  = (mag_max[2] + mag_min[2])/2;  // get average z mag bias in counts
+
+	self->magBias[0] = (float) mag_bias[0]*self->mRes*self->magCalibration[0];  // save mag biases in G for main program
+	self->magBias[1] = (float) mag_bias[1]*self->mRes*self->magCalibration[1];
+	self->magBias[2] = (float) mag_bias[2]*self->mRes*self->magCalibration[2];
+
+	 // Get soft iron correction estimate
+	mag_scale[0]  = (mag_max[0] - mag_min[0])/2;  // get average x axis max chord length in counts
+	mag_scale[1]  = (mag_max[1] - mag_min[1])/2;  // get average y axis max chord length in counts
+	mag_scale[2]  = (mag_max[2] - mag_min[2])/2;  // get average z axis max chord length in counts
+
+	float avg_rad = mag_scale[0] + mag_scale[1] + mag_scale[2];
+	avg_rad /= 3.0;
+
+	self->magScale[0] = avg_rad/((float)mag_scale[0]);
+	self->magScale[1] = avg_rad/((float)mag_scale[1]);
+	self->magScale[2] = avg_rad/((float)mag_scale[2]);
+}
+
+void _readMagData(AK8963 *self, int16_t * destination)
+{
+	uint8_t rawData[7];  // x/y/z gyro register data, ST2 register stored here, must read ST2 at end of data acquisition
+	self->i2c->read(self->i2c, self->devAddr, AK8963_RA_ST1, &self->buffer[0], 1);
+	if (self->buffer[0] & 0x01)
+	{
+		self->i2c->read(self->i2c, self->devAddr, AK8963_RA_HXL, &rawData[0], 7);
+		uint8_t c = rawData[6]; // End data read by reading ST2 register
+		if(!(c & 0x08)) { // Check if magnetic sensor overflow set, if not then report data
+			destination[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;  // Turn the MSB and LSB into a signed 16-bit value
+			destination[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  // Data stored as little Endian
+			destination[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
+	   }
+	}
 }
