@@ -622,6 +622,7 @@ void _calibrate(MPU6050 *self)
 	self->buffer[0] = MPU6050_RA_GYRO_CONFIG ;	// Set gyro full-scale to 250 degrees per second, maximum sensitivity
 	self->buffer[1] = 0x00;
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+//	self->setFullScaleGyroRange(self, MPU6050_GYRO_FS_2000);
 	self->buffer[0] = MPU6050_RA_ACCEL_CONFIG ;	// Set accelerometer full-scale to 2 g, maximum sensitivity
 	self->buffer[1] = 0x00;
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
@@ -645,6 +646,7 @@ void _calibrate(MPU6050 *self)
 	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_FIFO_COUNTH, &data[0], 2);
 	fifo_count = ((uint16_t)data[0] << 8) | data[1];
 	packet_count = fifo_count/12;// How many sets of full gyro and accelerometer data for averaging
+	printf("packet cnt: %d\n", packet_count);
 
 	for (ii = 0; ii < packet_count; ii++)
 	{
@@ -656,6 +658,8 @@ void _calibrate(MPU6050 *self)
 		gyro_temp[0]  = (int16_t) (((int16_t)data[6] << 8) | data[7]  ) ;
 		gyro_temp[1]  = (int16_t) (((int16_t)data[8] << 8) | data[9]  ) ;
 		gyro_temp[2]  = (int16_t) (((int16_t)data[10] << 8) | data[11]) ;
+		printf("a: %d, %d, %d, g: %d, %d, %d\n",
+				accel_temp[0], accel_temp[1], accel_temp[2], gyro_temp[0], gyro_temp[1], gyro_temp[2]);
 
 		accel_bias[0] += (int32_t) accel_temp[0]; // Sum individual signed 16-bit biases to get accumulated signed 32-bit biases
 		accel_bias[1] += (int32_t) accel_temp[1];
@@ -665,12 +669,18 @@ void _calibrate(MPU6050 *self)
 		gyro_bias[2]  += (int32_t) gyro_temp[2];
 	}
 
+	printf("bias a: %d, %d, %d, g: %d, %d, %d\n",
+			accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
+
 	accel_bias[0] /= (int32_t) packet_count; // Normalize sums to get average count biases
 	accel_bias[1] /= (int32_t) packet_count;
 	accel_bias[2] /= (int32_t) packet_count;
 	gyro_bias[0]  /= (int32_t) packet_count;
 	gyro_bias[1]  /= (int32_t) packet_count;
 	gyro_bias[2]  /= (int32_t) packet_count;
+
+	printf("bias avg a: %d, %d, %d, g: %d, %d, %d\n",
+				accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
 	if(accel_bias[2] > 0L) {accel_bias[2] -= (int32_t) accelsensitivity;}  // Remove gravity from the z-axis accelerometer bias calculation
 	else {accel_bias[2] += (int32_t) accelsensitivity;}
@@ -681,7 +691,7 @@ void _calibrate(MPU6050 *self)
 	data[3] = (-gyro_bias[1]/4)       & 0xFF;
 	data[4] = (-gyro_bias[2]/4  >> 8) & 0xFF;
 	data[5] = (-gyro_bias[2]/4)       & 0xFF;
-
+#if 1
 	self->buffer[0] = MPU6050_RA_XG_OFFS_USRH ;
 	self->buffer[1] = data[0];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
@@ -700,8 +710,9 @@ void _calibrate(MPU6050 *self)
 	self->buffer[0] = MPU6050_RA_ZG_OFFS_USRL ;
 	self->buffer[1] = data[5];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+#endif
 
-	printf("gyro bias: %d, %d, %d\n", (data[0]<<8)+data[1], (data[2]<<8)+data[3], (data[4]<<8)+data[5]);
+//	printf("gyro bias: %d, %d, %d\n", (data[0]<<8)+data[1], (data[2]<<8)+data[3], (data[4]<<8)+data[5]);
 
 	int32_t accel_bias_reg[3] = {0, 0, 0}; // A place to hold the factory accelerometer trim biases
 	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_XA_OFFSET_H, &data[0], 2);
@@ -733,5 +744,25 @@ void _calibrate(MPU6050 *self)
 	data[5] = (accel_bias_reg[2])      & 0xFF;
 	data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
 
+#if 0
+	self->buffer[0] = MPU6050_RA_XA_OFFS_H ;
+	self->buffer[1] = data[0];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_XA_OFFS_L_TC ;
+	self->buffer[1] = data[1];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_YA_OFFS_H ;
+	self->buffer[1] = data[2];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_YA_OFFS_L_TC ;
+	self->buffer[1] = data[3];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ZA_OFFS_H ;
+	self->buffer[1] = data[4];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ZA_OFFS_L_TC ;
+	self->buffer[1] = data[5];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+#endif
 }
 
