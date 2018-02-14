@@ -106,6 +106,7 @@ void Sensor_Init(Bus *bus)
 	}
 
 	imu.reset(&imu);
+	vTaskDelay(M2T(100));
 	imu.calibrate(&imu);
 	vTaskDelay(M2T(50));
 	imu.setSleepEnabled(&imu, false);
@@ -335,7 +336,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 	int16_t gy = (((int16_t) buffer[10]) << 8) | buffer[11];
 	int16_t gz = (((int16_t) buffer[12]) << 8) | buffer[13];
 
-//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
+	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 
