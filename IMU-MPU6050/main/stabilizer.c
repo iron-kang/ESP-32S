@@ -11,6 +11,7 @@ sensorData_t sensorData;
 setpoint_t setpoint;
 control_t control;
 state_t state;
+attitude_t attitude;
 
 void stabilizerTask(void* param);
 
@@ -54,6 +55,7 @@ void stabilizerTask(void* param)
 //		LED_Toggle(PIN_LED_YELLOW);
 		sensorsAcquire(&sensorData, tick);
 		stateEstimator(&state, &sensorData, tick);
+//		sensorsKalman(&sensorData, &attitude, 0.001);
 
 //		commanderGetSetpoint(&setpoint, &state);
 //
@@ -69,4 +71,9 @@ void stabilizerTask(void* param)
 state_t *stablizer_GetState()
 {
 	return &state;
+}
+
+attitude_t *stablizer_GetAttitude()
+{
+	return &attitude;
 }

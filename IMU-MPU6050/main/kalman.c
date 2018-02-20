@@ -1,6 +1,6 @@
 #include "kalman.h"
 
-float _getAngle(Kalman *this, float newAngle, float newRate, float dt);
+void _getAngle(Kalman *this, float newAngle, float newRate, float dt);
 void _setAngle(Kalman *this, float angle);
 float _getRate(Kalman *this);
 void _setQangle(Kalman *this, float Q_angle);
@@ -35,7 +35,7 @@ void Kalman_Init(Kalman *this)
 	this->getRmeasure = _getRmeasure;
 }
 
-float _getAngle(Kalman *this, float newAngle, float newRate, float dt) {
+void _getAngle(Kalman *this, float newAngle, float newRate, float dt) {
     // KasBot V2  -  Kalman filter module - http://www.x-firm.com/?page_id=145
     // Modified by Kristian Lauszus
     // See my blog post for more information: http://blog.tkjelectronics.dk/2012/09/a-practical-approach-to-kalman-filter-and-how-to-implement-it
@@ -79,8 +79,7 @@ float _getAngle(Kalman *this, float newAngle, float newRate, float dt) {
     this->P[1][0] -= K[1] * P00_temp;
     this->P[1][1] -= K[1] * P01_temp;
 
-    return this->angle;
-};
+}
 
 void _setAngle(Kalman *this, float angle) { this->angle = angle; }; // Used to set angle, this should be set as the starting angle
 float _getRate(Kalman *this) { return this->rate; }; // Return the unbiased rate

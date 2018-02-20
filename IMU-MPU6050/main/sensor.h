@@ -15,5 +15,6 @@ void Sensor_Init(Bus *bus);
 bool sensorsAreCalibrated();
 bool sensorsTest();
 void sensorsAcquire(sensorData_t *sensors, const uint32_t tick);
+void sensorsKalman(sensorData_t *sensors, attitude_t *attitude, float dt);
 
 #endif

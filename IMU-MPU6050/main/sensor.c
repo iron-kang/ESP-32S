@@ -6,6 +6,8 @@
 #include "ak8963.h"
 #include "config.h"
 #include "led.h"
+#include "kalman.h"
+#include "utility.h"
 
 #define SENSORS_TASK_NAME           "SENSORS"
 #define MAG_GAUSS_PER_LSB           666.7f
@@ -23,6 +25,7 @@
 #define GYRO_VARIANCE_THRESHOLD_X   (GYRO_VARIANCE_BASE)
 #define GYRO_VARIANCE_THRESHOLD_Y   (GYRO_VARIANCE_BASE)
 #define GYRO_VARIANCE_THRESHOLD_Z   (GYRO_VARIANCE_BASE)
+#define RAD_TO_DEG                  (180/M_PI)
 
 typedef struct
 {
@@ -48,6 +51,8 @@ BiasObj gyroBiasRunning;
 Axis3f  gyroBias;
 sensorData_t sensors;
 uint8_t buffer[BUF_LEN] = {0};
+Kalman kalRoll, kalPitch;
+
 float accScaleSum = 0;
 float accScale = 1;
 float cosPitch;
@@ -60,6 +65,7 @@ void processMagnetometerMeasurements(const uint8_t *buffer);
 void processBarometerMeasurements(const uint8_t *buffer);
 void sensorsBiasObjInit(BiasObj* bias);
 void SensorTask_Init();
+void sensorsSetupSlaveRead(void);
 
 void IRAM_ATTR mpu6050_isr_handler(void* arg)
 {
@@ -148,12 +154,22 @@ void Sensor_Init(Bus *bus)
 		LED_ON(PIN_LED_YELLOW);
 		printf("AK8963 I2C connection [FAIL].\n");
 	}
-
+//	mag.Calibrate(&mag);
 	cosPitch = cosf(0 * (float) M_PI/180);
 	sinPitch = sinf(0 * (float) M_PI/180);
 	cosRoll = cosf(0 * (float) M_PI/180);
 	sinRoll = sinf(0 * (float) M_PI/180);
 
+	sensorsSetupSlaveRead();
+	imu.readAllRaw(&imu, buffer, BUF_LEN);
+	processAccGyroMeasurements(&(buffer[0]));
+
+	float roll = atan2(sensors.acc.y, sensors.acc.z) * RAD_TO_DEG;
+	float pitch = atan(-sensors.acc.x/sqrt(sensors.acc.y*sensors.acc.y+sensors.acc.z*sensors.acc.z)) * RAD_TO_DEG;
+	Kalman_Init(&kalRoll);
+	Kalman_Init(&kalPitch);
+	kalRoll.setAngle(&kalRoll, roll);
+	kalPitch.setAngle(&kalPitch, pitch);
 	SensorTask_Init();
 }
 
@@ -349,12 +365,15 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 	sensors.gyro.y =  (gy - gyroBias.y) * SENSORS_DEG_PER_LSB_CFG;
 	sensors.gyro.z =  (gz - gyroBias.z) * SENSORS_DEG_PER_LSB_CFG;
 	applyAxis3fLpf((lpf2pData*)(&gyroLpf), &sensors.gyro);
+//	printf("g bias (%f, %f, %f)\n", gyroBias.x, gyroBias.y, gyroBias.z);
 
 	accScaled.x =  (ax) * SENSORS_G_PER_LSB_CFG / accScale;
 	accScaled.y =  (ay) * SENSORS_G_PER_LSB_CFG / accScale;
 	accScaled.z =  (az) * SENSORS_G_PER_LSB_CFG / accScale;
 	sensorsAccAlignToGravity(&accScaled, &sensors.acc);
 	applyAxis3fLpf((lpf2pData*)(&accLpf), &sensors.acc);
+//	printf("a(%f, %f, %f), g(%f, %f, %f)\n", sensors.acc.x, sensors.acc.y, sensors.acc.z,
+//			sensors.gyro.x, sensors.gyro.y, sensors.gyro.z);
 }
 
 void processMagnetometerMeasurements(const uint8_t *buffer)
@@ -481,10 +500,31 @@ void sensorsSetupSlaveRead(void)
 	imu.setIntDataReadyEnabled(&imu, true);
 }
 
+void sensorsKalman(sensorData_t *sensors, attitude_t *attitude, float dt)
+{
+	float roll = atan2(sensors->acc.y, sensors->acc.z) * RAD_TO_DEG;
+	float pitch = atan(-sensors->acc.x*invSqrt(sensors->acc.y*sensors->acc.y+sensors->acc.z*sensors->acc.z)) * RAD_TO_DEG;
+
+	if ((roll < -90 && kalRoll.angle > 90) || (roll > 90 && kalRoll.angle < -90))
+	{
+		printf("out range: %f\n", roll);
+		kalRoll.setAngle(&kalRoll, roll);
+	}
+	else
+		kalRoll.getAngle(&kalRoll, roll, sensors->gyro.x, dt);
+
+	if (abs(kalRoll.angle) > 90)
+	{
+		kalPitch.getAngle(&kalPitch, pitch, -sensors->gyro.y, dt);
+	}
+	kalPitch.getAngle(&kalPitch, pitch, sensors->gyro.y, dt);
+
+	attitude->roll = kalRoll.angle;
+	attitude->pitch = kalPitch.angle;
+}
+
 void sensorsTask(void *param)
 {
-	sensorsSetupSlaveRead();
-
 	while (true)
 	{
 		if (pdTRUE == xSemaphoreTake(sensorsDataReady, portMAX_DELAY))

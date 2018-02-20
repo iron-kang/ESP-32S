@@ -1,4 +1,5 @@
 #include "sensfusion6.h"
+#include "utility.h"
 
 #define M_PI_F ((float) M_PI)
 
@@ -42,7 +43,6 @@ static float sensfusion6GetAccZ(const float ax, const float ay, const float az);
 static void estimatedGravityDirection(float* gx, float* gy, float* gz);
 
 // TODO: Make math util file
-static float invSqrt(float x);
 
 void sensfusion6Init()
 {
@@ -232,7 +232,7 @@ static void sensfusion6UpdateQImpl(float gx, float gy, float gz, float ax, float
 		MahonyAHRSupdateIMU(gx, gy, gz, ax, ay, az, dt);
 		return;
 	}
-
+//	printf("add mag\n");
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 		// Normalise accelerometer measurement
 		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
@@ -349,19 +349,6 @@ float sensfusion6GetInvThrustCompensationForTilt()
   return gravZ;
 }
 
-//---------------------------------------------------------------------------------------------------
-// Fast inverse square-root
-// See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invSqrt(float x)
-{
-  float halfx = 0.5f * x;
-  float y = x;
-  long i = *(long*)&y;
-  i = 0x5f3759df - (i>>1);
-  y = *(float*)&i;
-  y = y * (1.5f - (halfx * y * y));
-  return y;
-}
 
 static float sensfusion6GetAccZ(const float ax, const float ay, const float az)
 {

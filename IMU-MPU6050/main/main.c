@@ -67,14 +67,17 @@ void init()
 void mqtt_task(void *pvParameters)
 {
 	state_t *state;
+	attitude_t *attitude;
 	uint32_t lastWakeTime;
 
 	lastWakeTime = xTaskGetTickCount ();
 	while (true)
 	{
 		state = stablizer_GetState();
+		attitude = stablizer_GetAttitude();
 //		MQTT_Update(state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
-//		printf("roll: %f, pitch: %f, yaw: %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
+//		printf("    rpy: %f, %f, %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
+//		printf("kal rpy: %f, %f\n", attitude->roll, attitude->pitch);
 		vTaskDelayUntil(&lastWakeTime, 100);
 	}
 }

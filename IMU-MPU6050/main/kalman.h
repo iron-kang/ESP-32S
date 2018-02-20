@@ -12,7 +12,7 @@ typedef struct _kalman {
 	float rate;
 	float P[2][2];
 
-    float (*getAngle)(struct _kalman *self, float newAngle, float newRate, float dt);
+    void (*getAngle)(struct _kalman *self, float newAngle, float newRate, float dt);
 
     void (*setAngle)(struct _kalman *self, float angle);
     float (*getRate)(struct _kalman *self);
