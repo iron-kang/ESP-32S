@@ -42,7 +42,7 @@ void init()
 //    if (pass)
 //    	printf("system OK\n");
 
-//    Stabilizer();
+    Stabilizer();
 
 //    i2c.setAddr(&i2c, COMPASSADDR);
 //    compass.i2c = &i2c;
@@ -74,9 +74,9 @@ void mqtt_task(void *pvParameters)
 	while (true)
 	{
 		state = stablizer_GetState();
-		attitude = stablizer_GetAttitude();
+//		attitude = stablizer_GetAttitude();
 //		MQTT_Update(state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
-//		printf("    rpy: %f, %f, %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
+		printf("    rpy: %f, %f, %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
 //		printf("kal rpy: %f, %f\n", attitude->roll, attitude->pitch);
 		vTaskDelayUntil(&lastWakeTime, 100);
 	}

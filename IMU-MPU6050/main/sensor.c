@@ -352,7 +352,11 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 	int16_t gy = (((int16_t) buffer[10]) << 8) | buffer[11];
 	int16_t gz = (((int16_t) buffer[12]) << 8) | buffer[13];
 
-	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az, gx, gy, gz);
+	gx = abs(gx) > 8 ? gx : 0;
+	gy = abs(gy) > 8 ? gy : 0;
+	gz = abs(gz) > 5 ? gz : 0;
+
+//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 
@@ -361,9 +365,9 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 		processAccScale(ax, ay, az);
 	}
 
-	sensors.gyro.x =  (gx - gyroBias.x) * SENSORS_DEG_PER_LSB_CFG;
-	sensors.gyro.y =  (gy - gyroBias.y) * SENSORS_DEG_PER_LSB_CFG;
-	sensors.gyro.z =  (gz - gyroBias.z) * SENSORS_DEG_PER_LSB_CFG;
+	sensors.gyro.x =  (gx - gyroBias.x*0) * SENSORS_DEG_PER_LSB_CFG;
+	sensors.gyro.y =  (gy - gyroBias.y*0) * SENSORS_DEG_PER_LSB_CFG;
+	sensors.gyro.z =  (gz - gyroBias.z*0) * SENSORS_DEG_PER_LSB_CFG;
 	applyAxis3fLpf((lpf2pData*)(&gyroLpf), &sensors.gyro);
 //	printf("g bias (%f, %f, %f)\n", gyroBias.x, gyroBias.y, gyroBias.z);
 

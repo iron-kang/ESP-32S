@@ -626,10 +626,10 @@ void _calibrate(MPU6050 *self)
 	self->buffer[0] = MPU6050_RA_ACCEL_CONFIG ;	// Set accelerometer full-scale to 2 g, maximum sensitivity
 	self->buffer[1] = 0x00;
 //	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->setFullScaleAccelRange(self, MPU6050_ACCEL_FS_16);
+	self->setFullScaleAccelRange(self, MPU6050_G_PER_LSB_2);
 
 	uint16_t  gyrosensitivity  = 131;   // = 131 LSB/degrees/sec
-	uint16_t  accelsensitivity = 2048;//16384;  // = 16384 LSB/g
+	uint16_t  accelsensitivity = 16384;  // = 16384 LSB/g
 
 	// Configure FIFO to capture accelerometer and gyro data for bias calculation
 	self->buffer[0] = MPU6050_RA_USER_CTRL ;	// Enable FIFO
@@ -686,9 +686,14 @@ void _calibrate(MPU6050 *self)
 	gyro_bias[0] = -114;
 	gyro_bias[1] = -90;
 	gyro_bias[2] = 0;
+
+	accel_bias[0] = -256;
+	accel_bias[1] = 131;
+
 	if(accel_bias[2] > 0L) {accel_bias[2] -= (int32_t) accelsensitivity;}  // Remove gravity from the z-axis accelerometer bias calculation
 	else {accel_bias[2] += (int32_t) accelsensitivity;}
 
+	accel_bias[2] = -49;
 	printf("bias avg 2 a: %d, %d, %d, g: %d, %d, %d\n",
 					accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
@@ -733,6 +738,8 @@ void _calibrate(MPU6050 *self)
 	uint32_t mask = 1uL; // Define mask for temperature compensation bit 0 of lower byte of accelerometer bias registers
 	uint8_t mask_bit[3] = {0, 0, 0}; // Define array to hold mask bit for each accelerometer bias axis
 
+	printf("acc bias reg: %d, %d, %d\n", accel_bias_reg[0], accel_bias_reg[1], accel_bias_reg[2]);
+
 	for(ii = 0; ii < 3; ii++) {
 		if((accel_bias_reg[ii] & mask)) mask_bit[ii] = 0x01; // If temperature compensation bit is set, record that fact in mask_bit
 	}
@@ -741,6 +748,7 @@ void _calibrate(MPU6050 *self)
 	accel_bias_reg[0] -= (accel_bias[0]/8); // Subtract calculated averaged accelerometer bias scaled to 2048 LSB/g (16 g full scale)
 	accel_bias_reg[1] -= (accel_bias[1]/8);
 	accel_bias_reg[2] -= (accel_bias[2]/8);
+	printf("save acc bias reg: %d, %d, %d\n", accel_bias_reg[0], accel_bias_reg[1], accel_bias_reg[2]);
 
 	data[0] = (accel_bias_reg[0] >> 8) & 0xFF;
 	data[1] = (accel_bias_reg[0])      & 0xFF;
@@ -752,23 +760,24 @@ void _calibrate(MPU6050 *self)
 	data[5] = (accel_bias_reg[2])      & 0xFF;
 	data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
 
-#if 0
-	self->buffer[0] = MPU6050_RA_XA_OFFS_H ;
+
+	self->buffer[0] = MPU6050_RA_XA_OFFSET_H ;
 	self->buffer[1] = data[0];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->buffer[0] = MPU6050_RA_XA_OFFS_L_TC ;
+	self->buffer[0] = MPU6050_RA_XA_OFFSET_L ;
 	self->buffer[1] = data[1];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->buffer[0] = MPU6050_RA_YA_OFFS_H ;
+	self->buffer[0] = MPU6050_RA_YA_OFFSET_H ;
 	self->buffer[1] = data[2];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->buffer[0] = MPU6050_RA_YA_OFFS_L_TC ;
+	self->buffer[0] = MPU6050_RA_YA_OFFSET_L ;
 	self->buffer[1] = data[3];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->buffer[0] = MPU6050_RA_ZA_OFFS_H ;
+#if 1
+	self->buffer[0] = MPU6050_RA_ZA_OFFSET_H ;
 	self->buffer[1] = data[4];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->buffer[0] = MPU6050_RA_ZA_OFFS_L_TC ;
+	self->buffer[0] = MPU6050_RA_ZA_OFFSET_L ;
 	self->buffer[1] = data[5];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
 #endif
