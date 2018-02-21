@@ -11,5 +11,6 @@
 #include "esp_err.h"
 #include "sdkconfig.h"
 #include "config.h"
+#include "esp_log.h"
 
 #endif /* MAIN_COMMON_H_ */

@@ -13,6 +13,7 @@
 #include "led.h"
 #include "motor.h"
 #include "mqtt.h"
+#include "network.h"
 
 #define OLED_SDI  12
 #define OLED_SDO  13
@@ -34,6 +35,7 @@ void init()
 	LED_Init();
     Bus_Init(&bus);
     Sensor_Init(&bus);
+
 //    MQTT_Init();
 //    Motor_Init();
 
@@ -43,6 +45,7 @@ void init()
 //    	printf("system OK\n");
 
     Stabilizer();
+//    Network_Init();
 
 //    i2c.setAddr(&i2c, COMPASSADDR);
 //    compass.i2c = &i2c;
