@@ -44,8 +44,8 @@ void init()
 //    if (pass)
 //    	printf("system OK\n");
 
-    Stabilizer();
-//    Network_Init();
+//    Stabilizer();
+    Network_Init();
 
 //    i2c.setAddr(&i2c, COMPASSADDR);
 //    compass.i2c = &i2c;
@@ -89,7 +89,7 @@ void app_main()
 {
     init();
 
-    xTaskCreate(&mqtt_task, "mqtt_task", 8192, NULL, 3, NULL);
+//    xTaskCreate(&mqtt_task, "mqtt_task", 8192, NULL, 3, NULL);
 
 }
 

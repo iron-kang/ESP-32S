@@ -52,8 +52,11 @@ void server_task(void *pvParameters)
 			printf("recv: ...\n");
 			if (err == ERR_OK) {
 				netbuf_data(inbuf, (void**)&buf, &buflen);
-				for (int i = 0; i < buflen; i++)
-					printf("%x ", buf[i]);
+//				for (int i = 0; i < buflen; i++)
+//					printf("%x ", buf[i]);
+				if ((buf[0] != '@') || (buf[1] != '#'))
+					continue;
+				printf("%s\n", &buf[2]);
 
 			}
 		}
@@ -73,8 +76,8 @@ void Network_Init()
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
 	tcpip_adapter_ip_info_t info;
 	memset(&info, 0, sizeof(info));
-	IP4_ADDR(&info.ip, 192, 168, 33, 1);
-	IP4_ADDR(&info.gw, 192, 168, 33, 1);
+	IP4_ADDR(&info.ip, 123, 3, 2, 1);
+	IP4_ADDR(&info.gw, 123, 3, 2, 1);
 	IP4_ADDR(&info.netmask, 255, 255, 255, 0);
 	ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &info));
 
