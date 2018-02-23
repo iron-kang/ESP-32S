@@ -7,6 +7,13 @@
 #include "lwip/err.h"
 #include "nvs_flash.h"
 #include "config.h"
+#include "utility.h"
+#include "led.h"
+#include "freertos/event_groups.h"
+
+EventGroupHandle_t event_group;
+const int STA_CONNECTED_BIT = BIT0;
+const int STA_DISCONNECTED_BIT = BIT1;
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -17,10 +24,12 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 		break;
 
 	case SYSTEM_EVENT_AP_STACONNECTED:
+		xEventGroupSetBits(event_group, STA_CONNECTED_BIT);
 		printf("connect\n");
 		break;
 
 	case SYSTEM_EVENT_AP_STADISCONNECTED:
+		xEventGroupSetBits(event_group, STA_DISCONNECTED_BIT);
 		printf("disconnect\n");
 		break;
 
@@ -38,6 +47,8 @@ void server_task(void *pvParameters)
 	char *buf;
 	u16_t buflen;
 	err_t err;
+	state_t *state;
+	Info data;
 
 	conn = netconn_new(NETCONN_TCP);
 	netconn_bind(conn, NULL, 80);
@@ -45,20 +56,32 @@ void server_task(void *pvParameters)
 	printf("HTTP Server listening...\n");
 
 	while (true) {
-		err = netconn_accept(conn, &newconn);
 		printf("New client connected\n");
+		err = netconn_accept(conn, &newconn);
+
 		while (true) {
+			printf("loop...");
 			err = netconn_recv(newconn, &inbuf);
-			printf("recv: ...\n");
+			printf("ok\n");
 			if (err == ERR_OK) {
 				netbuf_data(inbuf, (void**)&buf, &buflen);
 //				for (int i = 0; i < buflen; i++)
 //					printf("%x ", buf[i]);
 				if ((buf[0] != '@') || (buf[1] != '#'))
 					continue;
-				printf("%s\n", &buf[2]);
+//				printf("%s\n", &buf[2]);
+
+//				state = stablizer_GetState();
+//				data.attitude.x = state->attitude.roll;
+//				data.attitude.y = state->attitude.pitch;
+//				data.attitude.z = state->attitude.yaw;
+//				memcpy(buf, &data, sizeof(data));
+//				netconn_write(newconn, buf, sizeof(data), NETCONN_NOCOPY);
+//				netbuf_ref(inbuf, &data, sizeof(data));
+//				netconn_send(newconn, inbuf);
 
 			}
+
 		}
 		netconn_delete(newconn);
 	}
@@ -68,9 +91,20 @@ void server_task(void *pvParameters)
 	printf("\n");
 }
 
+void monitor_task(void *pvParameter)
+{
+	while(1) {
+
+		EventBits_t staBits = xEventGroupWaitBits(event_group, STA_CONNECTED_BIT | STA_DISCONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+		if((staBits & STA_CONNECTED_BIT) != 0) printf("New station connected\n\n");
+		else printf("A station disconnected\n\n");
+	}
+}
+
 void Network_Init()
 {
 	nvs_flash_init();
+	event_group = xEventGroupCreate();
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
@@ -96,7 +130,7 @@ void Network_Init()
 			.channel = 6,
 			.authmode = WIFI_AUTH_WPA2_PSK,
 			.ssid_hidden = 0,
-			.max_connection = CONFIG_AP_MAX_CONNECTIONS,
+			.max_connection = 10,
 			.beacon_interval = CONFIG_AP_BEACON_INTERVAL,
 		},
 	};

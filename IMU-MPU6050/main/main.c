@@ -44,7 +44,7 @@ void init()
 //    if (pass)
 //    	printf("system OK\n");
 
-//    Stabilizer();
+    Stabilizer();
     Network_Init();
 
 //    i2c.setAddr(&i2c, COMPASSADDR);
@@ -81,7 +81,7 @@ void mqtt_task(void *pvParameters)
 //		MQTT_Update(state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
 		printf("    rpy: %f, %f, %f\n", state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
 //		printf("kal rpy: %f, %f\n", attitude->roll, attitude->pitch);
-		vTaskDelayUntil(&lastWakeTime, 100);
+		vTaskDelayUntil(&lastWakeTime, 1000);
 	}
 }
 
