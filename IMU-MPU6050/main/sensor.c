@@ -142,7 +142,7 @@ void Sensor_Init(Bus *bus)
 		lpf2pInit(&gyroLpf[i], 1000, GYRO_LPF_CUTOFF_FREQ);
 		lpf2pInit(&accLpf[i],  1000, ACCEL_LPF_CUTOFF_FREQ);
 	}
-
+#if 0
 	AK8963Init(&mag, AK8963_ADDRESS_00);
 	if (mag.TestConnection(&mag) == true)
 	{
@@ -154,7 +154,8 @@ void Sensor_Init(Bus *bus)
 		LED_ON(PIN_LED_YELLOW);
 		printf("AK8963 I2C connection [FAIL].\n");
 	}
-//	mag.Calibrate(&mag);
+	mag.Calibrate(&mag);
+#endif
 	cosPitch = cosf(0 * (float) M_PI/180);
 	sinPitch = sinf(0 * (float) M_PI/180);
 	cosRoll = cosf(0 * (float) M_PI/180);

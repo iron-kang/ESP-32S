@@ -37,7 +37,7 @@ void init()
     Sensor_Init(&bus);
 
 //    MQTT_Init();
-//    Motor_Init();
+    Motor_Init();
 
 //    pass &= stabilizerTest();
 //

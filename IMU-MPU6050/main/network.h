@@ -3,6 +3,11 @@
 
 #include "common.h"
 
+typedef struct _cmd {
+	void (*action)();
+	char header;
+}Action;
+
 void Network_Init();
 
 #endif

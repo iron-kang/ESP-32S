@@ -11,28 +11,52 @@
 #include "led.h"
 #include "freertos/event_groups.h"
 
+void action_getInfo();
+void action_thrust();
+
+struct netconn *conn, *newconn;
 EventGroupHandle_t event_group;
+state_t *state;
+Info data;
+Action actions[] = {
+	{action_getInfo, 'A'},
+	{action_thrust,  'a'},
+	{NULL,			'\0'}
+};
 const int STA_CONNECTED_BIT = BIT0;
 const int STA_DISCONNECTED_BIT = BIT1;
+
+
+void action_getInfo()
+{
+	char buffer[50];
+	state = stablizer_GetState();
+	data.attitude.x = state->attitude.roll;
+	data.attitude.y = state->attitude.pitch;
+	data.attitude.z = state->attitude.yaw;
+	memcpy(buffer, &data, sizeof(data));
+	netconn_write(newconn, buffer, sizeof(data), NETCONN_NOCOPY);
+}
+
+void action_thrust()
+{
+
+}
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     switch(event->event_id) {
-
     case SYSTEM_EVENT_AP_START:
 		printf("Access point started\n");
 		break;
-
 	case SYSTEM_EVENT_AP_STACONNECTED:
 		xEventGroupSetBits(event_group, STA_CONNECTED_BIT);
 		printf("connect\n");
 		break;
-
 	case SYSTEM_EVENT_AP_STADISCONNECTED:
 		xEventGroupSetBits(event_group, STA_DISCONNECTED_BIT);
 		printf("disconnect\n");
 		break;
-
 	default:
         break;
     }
@@ -42,13 +66,11 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 
 void server_task(void *pvParameters)
 {
-	struct netconn *conn, *newconn;
 	struct netbuf *inbuf;
 	char *buf;
 	u16_t buflen;
 	err_t err;
-	state_t *state;
-	Info data;
+	Action *act;
 
 	conn = netconn_new(NETCONN_TCP);
 	netconn_bind(conn, NULL, 80);
@@ -60,9 +82,9 @@ void server_task(void *pvParameters)
 		err = netconn_accept(conn, &newconn);
 
 		while (true) {
-			printf("loop...");
+//			printf("loop...");
 			err = netconn_recv(newconn, &inbuf);
-			printf("ok\n");
+//			printf("ok\n");
 			if (err == ERR_OK) {
 				netbuf_data(inbuf, (void**)&buf, &buflen);
 //				for (int i = 0; i < buflen; i++)
@@ -70,31 +92,33 @@ void server_task(void *pvParameters)
 				if ((buf[0] != '@') || (buf[1] != '#'))
 					continue;
 //				printf("%s\n", &buf[2]);
-
-//				state = stablizer_GetState();
-//				data.attitude.x = state->attitude.roll;
-//				data.attitude.y = state->attitude.pitch;
-//				data.attitude.z = state->attitude.yaw;
-//				memcpy(buf, &data, sizeof(data));
-//				netconn_write(newconn, buf, sizeof(data), NETCONN_NOCOPY);
-//				netbuf_ref(inbuf, &data, sizeof(data));
-//				netconn_send(newconn, inbuf);
+				netbuf_free(inbuf);
+				act = actions;
+				for (; act; act++)
+				{
+//					printf("head: %c\n", act->header);
+					if (buf[2] == act->header)
+					{
+						act->action();
+						break;
+					}
+				}
 
 			}
+			else break;
 
 		}
 		netconn_delete(newconn);
 	}
 	netconn_close(conn);
 	netconn_delete(conn);
-	printf("Server exit");
-	printf("\n");
+	printf("Server exit\n");
 }
 
 void monitor_task(void *pvParameter)
 {
-	while(1) {
-
+	while(1)
+	{
 		EventBits_t staBits = xEventGroupWaitBits(event_group, STA_CONNECTED_BIT | STA_DISCONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
 		if((staBits & STA_CONNECTED_BIT) != 0) printf("New station connected\n\n");
 		else printf("A station disconnected\n\n");
@@ -110,8 +134,8 @@ void Network_Init()
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
 	tcpip_adapter_ip_info_t info;
 	memset(&info, 0, sizeof(info));
-	IP4_ADDR(&info.ip, 123, 3, 2, 1);
-	IP4_ADDR(&info.gw, 123, 3, 2, 1);
+	IP4_ADDR(&info.ip, 192, 168, 1, 1);
+	IP4_ADDR(&info.gw, 192, 168, 1, 1);
 	IP4_ADDR(&info.netmask, 255, 255, 255, 0);
 	ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &info));
 
