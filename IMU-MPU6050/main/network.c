@@ -9,13 +9,15 @@
 #include "config.h"
 #include "utility.h"
 #include "led.h"
-#include "freertos/event_groups.h"
+#include "motor.h"
+
+#define ACT_NUM 2
 
 void action_getInfo();
 void action_thrust();
 
 struct netconn *conn, *newconn;
-EventGroupHandle_t event_group;
+char *buf;
 state_t *state;
 Info data;
 Action actions[] = {
@@ -23,8 +25,6 @@ Action actions[] = {
 	{action_thrust,  'a'},
 	{NULL,			'\0'}
 };
-const int STA_CONNECTED_BIT = BIT0;
-const int STA_DISCONNECTED_BIT = BIT1;
 
 
 void action_getInfo()
@@ -40,7 +40,15 @@ void action_getInfo()
 
 void action_thrust()
 {
+	int thrust = 0;
+	if (buf[3] == '+') thrust = 1;
+	else if (buf[3] == '-') thrust = -1;
 
+	motor_LF.update(&motor_LF, motor_LF.duty+thrust);
+	motor_LB.update(&motor_LB, motor_LB.duty+thrust);
+	motor_RF.update(&motor_RF, motor_RF.duty+thrust);
+	motor_RB.update(&motor_RB, motor_RB.duty+thrust);
+	printf("thrust\n");
 }
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -50,11 +58,9 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 		printf("Access point started\n");
 		break;
 	case SYSTEM_EVENT_AP_STACONNECTED:
-		xEventGroupSetBits(event_group, STA_CONNECTED_BIT);
 		printf("connect\n");
 		break;
 	case SYSTEM_EVENT_AP_STADISCONNECTED:
-		xEventGroupSetBits(event_group, STA_DISCONNECTED_BIT);
 		printf("disconnect\n");
 		break;
 	default:
@@ -67,10 +73,10 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 void server_task(void *pvParameters)
 {
 	struct netbuf *inbuf;
-	char *buf;
+
 	u16_t buflen;
 	err_t err;
-	Action *act;
+	uint8_t act;
 
 	conn = netconn_new(NETCONN_TCP);
 	netconn_bind(conn, NULL, 80);
@@ -93,13 +99,13 @@ void server_task(void *pvParameters)
 					continue;
 //				printf("%s\n", &buf[2]);
 				netbuf_free(inbuf);
-				act = actions;
-				for (; act; act++)
+
+				for (act = 0; act < ACT_NUM; act++)
 				{
-//					printf("head: %c\n", act->header);
-					if (buf[2] == act->header)
+//					printf("head: %c\n",actions[act].header);
+					if (buf[2] == actions[act].header)
 					{
-						act->action();
+						actions[act].action();
 						break;
 					}
 				}
@@ -115,27 +121,17 @@ void server_task(void *pvParameters)
 	printf("Server exit\n");
 }
 
-void monitor_task(void *pvParameter)
-{
-	while(1)
-	{
-		EventBits_t staBits = xEventGroupWaitBits(event_group, STA_CONNECTED_BIT | STA_DISCONNECTED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
-		if((staBits & STA_CONNECTED_BIT) != 0) printf("New station connected\n\n");
-		else printf("A station disconnected\n\n");
-	}
-}
 
 void Network_Init()
 {
 	nvs_flash_init();
-	event_group = xEventGroupCreate();
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
 	tcpip_adapter_ip_info_t info;
 	memset(&info, 0, sizeof(info));
-	IP4_ADDR(&info.ip, 192, 168, 1, 1);
-	IP4_ADDR(&info.gw, 192, 168, 1, 1);
+	IP4_ADDR(&info.ip, 123, 3, 2, 1);
+	IP4_ADDR(&info.gw, 123, 3, 2, 1);
 	IP4_ADDR(&info.netmask, 255, 255, 255, 0);
 	ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &info));
 

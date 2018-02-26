@@ -72,7 +72,7 @@ void _calibrate(MPU6050 *self);
 
 void MPU6050_Init(MPU6050 *mpu, uint8_t addr)
 {
-	mpu->devAddr = addr;
+	mpu->devAddr 				  = addr;
     mpu->reset                    = _reset;
     mpu->setClockSource           = _setClockSource;
     mpu->setFullScaleGyroRange    = _setFullScaleGyroRange;

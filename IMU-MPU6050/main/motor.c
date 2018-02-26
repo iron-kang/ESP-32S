@@ -2,8 +2,7 @@
 #include "driver/mcpwm.h"
 #include "common.h"
 
-void _Thrust(Motor *this);
-void _SetDuty(Motor *this, float duty);
+void _Thrust(Motor *this, float duty);
 
 void Motor_Init()
 {
@@ -54,15 +53,10 @@ void Motor_Init()
 	motor_RF.update = _Thrust;
 	motor_RB.update = _Thrust;
 
-	motor_LF.setDuty = _SetDuty;
-	motor_LB.setDuty = _SetDuty;
-	motor_RF.setDuty = _SetDuty;
-	motor_RB.setDuty = _SetDuty;
-
-	motor_LF.update(&motor_LF);
-	motor_LB.update(&motor_LB);
-	motor_RF.update(&motor_RF);
-	motor_RB.update(&motor_RB);
+	motor_LF.update(&motor_LF, duty);
+	motor_LB.update(&motor_LB, duty);
+	motor_RF.update(&motor_RF, duty);
+	motor_RB.update(&motor_RB, duty);
 //	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty);
 //	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, duty);
 //	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, duty);
@@ -70,15 +64,16 @@ void Motor_Init()
 	printf("pwm duty: %f\n", duty);
 }
 
-void _SetDuty(Motor *this, float duty)
+
+void _Thrust(Motor *this, float duty)
 {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	if (duty > 80 || duty <42)
+	{
+		xSemaphoreGive(this->mutex);
+		return;
+	}
 	this->duty = duty;
-	xSemaphoreGive(this->mutex);
-}
-
-void _Thrust(Motor *this)
-{
 	switch (this->id)
 	{
 	case LEFT_FORWARD:
@@ -94,4 +89,5 @@ void _Thrust(Motor *this)
 		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, this->duty);
 		break;
 	}
+	xSemaphoreGive(this->mutex);
 }
