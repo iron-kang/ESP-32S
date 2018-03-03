@@ -34,6 +34,10 @@ void action_getInfo()
 	data.attitude.x = state->attitude.roll;
 	data.attitude.y = state->attitude.pitch;
 	data.attitude.z = state->attitude.yaw;
+	data.thrust[LEFT_FORWARD]  = motor_LF.duty;
+	data.thrust[LEFT_BACK]     = motor_LB.duty;
+	data.thrust[RIGHT_FORWARD] = motor_RF.duty;
+	data.thrust[RIGHT_BACK]    = motor_RB.duty;
 	memcpy(buffer, &data, sizeof(data));
 	netconn_write(newconn, buffer, sizeof(data), NETCONN_NOCOPY);
 }

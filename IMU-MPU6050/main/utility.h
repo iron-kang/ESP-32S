@@ -6,6 +6,7 @@
 
 typedef struct _info {
 	Axis3f attitude;
+	float thrust[4];
 }Info;
 
 float invSqrt(float x);
