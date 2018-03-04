@@ -32,7 +32,20 @@ bool stabilizerTest(void)
 
   	return pass;
 }
-
+/*
+ * setpoint->mode.z = modeDisable;
+ * setpoint->mode.x = modeDisable;
+ * setpoint->mode.y = modeDisable;
+ * setpoint->attitudeRate.roll = 0;
+ * setpoint->attitudeRate.pitch = 0;
+ * setpoint->attitudeRate.yaw  = commanderGetActiveYaw();
+ * setpoint->attitude.pitch = commanderGetActivePitch();
+ * setpoint->attitude.roll = commanderGetActiveRoll();
+ * setpoint->thrust = commanderGetActiveThrust();
+ * attitudeDesired.yaw -= setpoint->attitudeRate.yaw/500.0;
+ * attitudeDesired.roll = setpoint->attitude.roll;
+ * attitudeDesired.pitch = setpoint->attitude.pitch;
+ */
 void stabilizerTask(void* param)
 {
 	uint32_t tick = 0;
