@@ -34,10 +34,10 @@ void Motor_Init()
 	mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_1, &pwm_config);
 
 	float duty = mcpwm_get_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A);
-	motor_LF.id = LEFT_FORWARD;
-	motor_LB.id = LEFT_BACK;
-	motor_RF.id = RIGHT_FORWARD;
-	motor_RB.id = RIGHT_BACK;
+	motor_LF.id = RIGHT_FORWARD;
+	motor_LB.id = RIGHT_BACK;
+	motor_RF.id = LEFT_FORWARD;
+	motor_RB.id = LEFT_BACK;
 	motor_LF.duty = duty;
 	motor_LB.duty = duty;
 	motor_RF.duty = duty;
