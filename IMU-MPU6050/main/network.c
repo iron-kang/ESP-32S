@@ -16,8 +16,9 @@
 void action_getInfo();
 void action_thrust();
 
-struct netconn *conn, *newconn;
+struct netconn *newconn;
 char *buf;
+char buf_out[50];
 state_t *state;
 Info data;
 Action actions[] = {
@@ -29,7 +30,6 @@ Action actions[] = {
 
 void action_getInfo()
 {
-	char buffer[50];
 	state = stablizer_GetState();
 	data.attitude.x = state->attitude.roll;
 	data.attitude.y = state->attitude.pitch;
@@ -38,8 +38,9 @@ void action_getInfo()
 	data.thrust[LEFT_BACK]     = motor_LB.duty;
 	data.thrust[RIGHT_FORWARD] = motor_RF.duty;
 	data.thrust[RIGHT_BACK]    = motor_RB.duty;
-	memcpy(buffer, &data, sizeof(data));
-	netconn_write(newconn, buffer, sizeof(data), NETCONN_NOCOPY);
+	memcpy(buf_out, &data, sizeof(data));
+	printf("send info\n");
+	netconn_write(newconn, buf_out, sizeof(data), NETCONN_NOCOPY);
 }
 
 void action_thrust()
@@ -77,10 +78,11 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 void server_task(void *pvParameters)
 {
 	struct netbuf *inbuf;
-
+	struct netconn *conn;
 	u16_t buflen;
 	err_t err;
 	uint8_t act;
+	int cnt = 0;
 
 	conn = netconn_new(NETCONN_TCP);
 	netconn_bind(conn, NULL, 80);
@@ -92,21 +94,21 @@ void server_task(void *pvParameters)
 		err = netconn_accept(conn, &newconn);
 
 		while (true) {
-//			printf("loop...");
+			printf("loop...");
 			err = netconn_recv(newconn, &inbuf);
-//			printf("ok\n");
-			if (err == ERR_OK) {
+			printf("ok (%d)", cnt++);
+			if (err == ERR_OK)
+			{
 				netbuf_data(inbuf, (void**)&buf, &buflen);
 //				for (int i = 0; i < buflen; i++)
 //					printf("%x ", buf[i]);
 				if ((buf[0] != '@') || (buf[1] != '#'))
 					continue;
-//				printf("%s\n", &buf[2]);
-				netbuf_free(inbuf);
+//				printf(" %c\n", buf[2]);
+				netbuf_delete(inbuf);
 
 				for (act = 0; act < ACT_NUM; act++)
 				{
-//					printf("head: %c\n",actions[act].header);
 					if (buf[2] == actions[act].header)
 					{
 						actions[act].action();
@@ -114,8 +116,10 @@ void server_task(void *pvParameters)
 					}
 				}
 
+
 			}
-			else break;
+			else
+				break;
 
 		}
 		netconn_delete(newconn);
@@ -134,8 +138,8 @@ void Network_Init()
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
 	tcpip_adapter_ip_info_t info;
 	memset(&info, 0, sizeof(info));
-	IP4_ADDR(&info.ip, 123, 3, 2, 1);
-	IP4_ADDR(&info.gw, 123, 3, 2, 1);
+	IP4_ADDR(&info.ip, 192, 168, 123, 1);
+	IP4_ADDR(&info.gw, 192, 168, 123, 1);
 	IP4_ADDR(&info.netmask, 255, 255, 255, 0);
 	ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &info));
 

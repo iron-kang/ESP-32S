@@ -86,7 +86,7 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
 	                       ATTITUDE_UPDATE_DT);
 	   // printf("--a(%.2f, %.2f, %.2f), g(%.2f, %.2f, %.2f)\n", sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
 	    //				sensorData->gyro.x, sensorData->gyro.y, sensorData->gyro.z);
-	    sensfusion6GetEulerRPY(&state->attitude.roll, &state->attitude.pitch, &state->attitude.yaw);
+	    sensfusion6GetEulerRPY(&state->attitude.pitch, &state->attitude.roll, &state->attitude.yaw);
 
 
 	    state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
