@@ -84,6 +84,7 @@ void IRAM_ATTR mpu6050_isr_handler(void* arg)
 void Sensor_Init(Bus *bus)
 {
 	gpio_config_t io_conf;
+	uint8_t try_cnt = 10;
 
 	sensorsDataReady = xSemaphoreCreateBinary();
 	io_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
@@ -100,15 +101,17 @@ void Sensor_Init(Bus *bus)
 
 	MPU6050_Init(&imu, MPU6050_ADDRESS);
 
-	if (imu.testConnection(&imu) == true)
+	while (!imu.testConnection(&imu))
 	{
-		printf("MPU9250 I2C connection [OK].\n");
-	}
-	else
-	{
-		LED_ON(PIN_LED_YELLOW);
-		printf("MPU9250 I2C connection [FAIL].\n");
-		return;
+		try_cnt--;
+		if (try_cnt == 0)
+		{
+			LED_ON(PIN_LED_YELLOW);
+			printf("MPU9250 I2C connection [FAIL].\n");
+			return;
+		}
+		printf("MPU6050 retry\n");
+		vTaskDelay(M2T(100));
 	}
 
 	imu.reset(&imu);
