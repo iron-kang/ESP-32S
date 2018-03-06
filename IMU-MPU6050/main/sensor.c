@@ -202,6 +202,7 @@ void sensorsCalculateVarianceAndMean(BiasObj* bias, Axis3f* varOut, Axis3f* mean
 		sumSq[2] += bias->buffer[i].z * bias->buffer[i].z;
 	}
 
+//	printf("sumY: %lld, sumYSq: %lld\n", sum[1], sumSq[1]);
 	varOut->x = (sumSq[0] - ((int64_t)sum[0] * sum[0]) / SENSORS_NBR_OF_BIAS_SAMPLES);
 	varOut->y = (sumSq[1] - ((int64_t)sum[1] * sum[1]) / SENSORS_NBR_OF_BIAS_SAMPLES);
 	varOut->z = (sumSq[2] - ((int64_t)sum[2] * sum[2]) / SENSORS_NBR_OF_BIAS_SAMPLES);
@@ -209,6 +210,8 @@ void sensorsCalculateVarianceAndMean(BiasObj* bias, Axis3f* varOut, Axis3f* mean
 	meanOut->x = (float)sum[0] / SENSORS_NBR_OF_BIAS_SAMPLES;
 	meanOut->y = (float)sum[1] / SENSORS_NBR_OF_BIAS_SAMPLES;
 	meanOut->z = (float)sum[2] / SENSORS_NBR_OF_BIAS_SAMPLES;
+
+//	printf("gyro mean: %f, %f, %f\n", meanOut->x, meanOut->y, meanOut->z);
 }
 
 /**
@@ -246,6 +249,7 @@ bool sensorsFindBiasValue(BiasObj* bias)
 
 		sensorsCalculateVarianceAndMean(bias, &variance, &mean);
 
+//		printf("gyro var(%f, %f, %f)\n", variance.x, variance.y, variance.z);
 		if (variance.x < GYRO_VARIANCE_THRESHOLD_X &&
 			variance.y < GYRO_VARIANCE_THRESHOLD_Y &&
 			variance.z < GYRO_VARIANCE_THRESHOLD_Z &&
@@ -360,7 +364,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 //	gy = abs(gy) > 8 ? gy : 0;
 //	gz = abs(gz) > 5 ? gz : 0;
 
-//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
+	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 

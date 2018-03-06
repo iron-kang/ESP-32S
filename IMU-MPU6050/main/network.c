@@ -39,7 +39,7 @@ void action_getInfo()
 	data.thrust[RIGHT_FORWARD] = motor_RF.duty;
 	data.thrust[RIGHT_BACK]    = motor_RB.duty;
 	memcpy(buf_out, &data, sizeof(data));
-	printf("send info\n");
+
 	netconn_write(newconn, buf_out, sizeof(data), NETCONN_NOCOPY);
 }
 
@@ -94,9 +94,9 @@ void server_task(void *pvParameters)
 		err = netconn_accept(conn, &newconn);
 
 		while (true) {
-			printf("loop...");
+//			printf("loop...");
 			err = netconn_recv(newconn, &inbuf);
-			printf("ok (%d)", cnt++);
+//			printf("ok (%d)", cnt++);
 			if (err == ERR_OK)
 			{
 				netbuf_data(inbuf, (void**)&buf, &buflen);

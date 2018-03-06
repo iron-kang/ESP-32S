@@ -119,7 +119,7 @@ bool _testConnection(MPU6050 *self)
 	self->i2c->readBits(self->i2c, self->devAddr, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH, &data);
 	printf("who am i %x\n", data);
 
-	return data == 0x38;
+	return data == 0x39;//0x38;
 }
 
 void _readAllRaw(MPU6050 *self, uint8_t *buffer, uint8_t len)
@@ -622,11 +622,11 @@ void _calibrate(MPU6050 *self)
 	self->buffer[0] = MPU6050_RA_GYRO_CONFIG ;	// Set gyro full-scale to 250 degrees per second, maximum sensitivity
 	self->buffer[1] = 0x00;
 //	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->setFullScaleGyroRange(self, MPU6050_GYRO_FS_2000);
+	self->setFullScaleGyroRange(self, MPU6050_GYRO_FS_250);//MPU6050_GYRO_FS_2000);
 	self->buffer[0] = MPU6050_RA_ACCEL_CONFIG ;	// Set accelerometer full-scale to 2 g, maximum sensitivity
 	self->buffer[1] = 0x00;
-//	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	self->setFullScaleAccelRange(self, MPU6050_G_PER_LSB_2);
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+//	self->setFullScaleAccelRange(self, MPU6050_G_PER_LSB_2);
 
 	uint16_t  gyrosensitivity  = 131;   // = 131 LSB/degrees/sec
 	uint16_t  accelsensitivity = 16384;  // = 16384 LSB/g
@@ -683,17 +683,17 @@ void _calibrate(MPU6050 *self)
 	printf("bias avg a: %d, %d, %d, g: %d, %d, %d\n",
 				accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
-	gyro_bias[0] = -114;
-	gyro_bias[1] = -90;
-	gyro_bias[2] = 0;
+//	gyro_bias[0] = -114;
+//	gyro_bias[1] = -90;
+//	gyro_bias[2] = 0;
 
-	accel_bias[0] = -256;
-	accel_bias[1] = 131;
+	accel_bias[0] = 192;//224;//-256;
+	accel_bias[1] = 387;//422;//131;
 
 	if(accel_bias[2] > 0L) {accel_bias[2] -= (int32_t) accelsensitivity;}  // Remove gravity from the z-axis accelerometer bias calculation
 	else {accel_bias[2] += (int32_t) accelsensitivity;}
 
-	accel_bias[2] = -49;
+	accel_bias[2] = -208;//-180;//-178;//-49;
 	printf("bias avg 2 a: %d, %d, %d, g: %d, %d, %d\n",
 					accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
@@ -716,14 +716,13 @@ void _calibrate(MPU6050 *self)
 	self->buffer[0] = MPU6050_RA_YG_OFFS_USRL ;
 	self->buffer[1] = data[3];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-#if 0
+
 	self->buffer[0] = MPU6050_RA_ZG_OFFS_USRH ;
 	self->buffer[1] = data[4];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
 	self->buffer[0] = MPU6050_RA_ZG_OFFS_USRL ;
 	self->buffer[1] = data[5];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-#endif
 
 //	printf("gyro bias: %d, %d, %d\n", (data[0]<<8)+data[1], (data[2]<<8)+data[3], (data[4]<<8)+data[5]);
 

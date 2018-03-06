@@ -1,6 +1,7 @@
 #include "estimator.h"
 #include "sensfusion6.h"
 #include "led.h"
+#include "utility.h"
 
 #define ATTITUDE_UPDATE_RATE RATE_250_HZ
 #define ATTITUDE_UPDATE_DT 1.0/ATTITUDE_UPDATE_RATE
@@ -27,23 +28,6 @@ static struct selfState_s state = {
   .vAccDeadband = 0.04,
   .velZAlpha = 0.995,
 };
-
-float deadband(float value, const float threshold)
-{
-  if (fabs(value) < threshold)
-  {
-    value = 0;
-  }
-  else if (value > 0)
-  {
-    value -= threshold;
-  }
-  else if (value < 0)
-  {
-    value += threshold;
-  }
-  return value;
-}
 
 void positionEstimateInternal(state_t* estimate, float asl, float dt, struct selfState_s* state);
 void positionUpdateVelocityInternal(float accWZ, float dt, struct selfState_s* state);
