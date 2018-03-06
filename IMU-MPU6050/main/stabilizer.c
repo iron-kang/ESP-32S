@@ -4,6 +4,7 @@
 #include "freertos/task.h"
 #include "estimator.h"
 #include "led.h"
+#include "controller.h"
 
 #define STABILIZER_TASK_NAME    "STABILIZER"
 
@@ -17,6 +18,8 @@ void stabilizerTask(void* param);
 
 void Stabilizer()
 {
+	Controller_Init();
+
 	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 8192, NULL, STABILIZER_TASK_PRI, NULL);
 //	xTaskCreatePinnedToCore(stabilizerTask, STABILIZER_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);
 }
