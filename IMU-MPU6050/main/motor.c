@@ -73,20 +73,20 @@ void _Thrust(Motor *this, float duty)
 		xSemaphoreGive(this->mutex);
 		return;
 	}
-	this->duty = duty;
+//	this->duty = duty;
 	switch (this->id)
 	{
 	case LEFT_FORWARD:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, this->duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty);
 		break;
 	case LEFT_BACK:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, this->duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, duty);
 		break;
 	case RIGHT_FORWARD:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, this->duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, duty);
 		break;
 	case RIGHT_BACK:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, this->duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, duty);
 		break;
 	}
 	xSemaphoreGive(this->mutex);

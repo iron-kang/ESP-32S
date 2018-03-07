@@ -49,10 +49,14 @@ void action_thrust()
 	if (buf[3] == '+') thrust = 1;
 	else if (buf[3] == '-') thrust = -1;
 
-	motor_LF.update(&motor_LF, motor_LF.duty+thrust);
-	motor_LB.update(&motor_LB, motor_LB.duty+thrust);
-	motor_RF.update(&motor_RF, motor_RF.duty+thrust);
-	motor_RB.update(&motor_RB, motor_RB.duty+thrust);
+	motor_LF.duty += thrust;
+	motor_LB.duty += thrust;
+	motor_RF.duty += thrust;
+	motor_RB.duty += thrust;
+	motor_LF.update(&motor_LF, motor_LF.duty);
+	motor_LB.update(&motor_LB, motor_LB.duty);
+	motor_RF.update(&motor_RF, motor_RF.duty);
+	motor_RB.update(&motor_RB, motor_RB.duty);
 	printf("thrust\n");
 }
 

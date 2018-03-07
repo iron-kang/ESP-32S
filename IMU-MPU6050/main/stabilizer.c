@@ -72,13 +72,11 @@ void stabilizerTask(void* param)
 		sensorsAcquire(&sensorData, tick);
 		stateEstimator(&state, &sensorData, tick);
 //		sensorsKalman(&sensorData, &attitude, 0.001);
-
-//		commanderGetSetpoint(&setpoint, &state);
-//
-//		sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
-//
-//		stateController(&control, &setpoint, &sensorData, &state, tick);
-//		powerDistribution(&control);
+		attitude_t target;
+		target.pitch = 0;
+		target.roll = 0;
+		target.yaw = 0;
+		Controller_PID(&state, &sensorData, target);
 
 		tick++;
 	}
