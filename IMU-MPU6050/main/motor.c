@@ -2,7 +2,7 @@
 #include "driver/mcpwm.h"
 #include "common.h"
 
-void _Thrust(Motor *this, float duty);
+void _Thrust(Motor *this);
 
 void Motor_Init()
 {
@@ -38,10 +38,15 @@ void Motor_Init()
 	motor_LB.id = RIGHT_BACK;
 	motor_RF.id = LEFT_FORWARD;
 	motor_RB.id = LEFT_BACK;
-	motor_LF.duty = duty;
-	motor_LB.duty = duty;
-	motor_RF.duty = duty;
-	motor_RB.duty = duty;
+	motor_LF.thrust_base = 60;
+	motor_LB.thrust_base = 60;
+	motor_RF.thrust_base = 60;
+	motor_RB.thrust_base = 60;
+
+	motor_LF.thrust_extra = 0;
+	motor_LB.thrust_extra = 0;
+	motor_RF.thrust_extra = 0;
+	motor_RB.thrust_extra = 0;
 
 	motor_LF.mutex = xSemaphoreCreateMutex();
 	motor_LB.mutex = xSemaphoreCreateMutex();
@@ -53,10 +58,10 @@ void Motor_Init()
 	motor_RF.update = _Thrust;
 	motor_RB.update = _Thrust;
 
-	motor_LF.update(&motor_LF, duty);
-	motor_LB.update(&motor_LB, duty);
-	motor_RF.update(&motor_RF, duty);
-	motor_RB.update(&motor_RB, duty);
+	motor_LF.update(&motor_LF);
+	motor_LB.update(&motor_LB);
+	motor_RF.update(&motor_RF);
+	motor_RB.update(&motor_RB);
 //	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty);
 //	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, duty);
 //	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, duty);
@@ -65,29 +70,31 @@ void Motor_Init()
 }
 
 
-void _Thrust(Motor *this, float duty)
+void _Thrust(Motor *this)
 {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (duty > 80 || duty <42)
+	this->thrust = this->thrust_base + this->thrust_extra;
+	if (this->thrust > 80 || this->thrust <42)
 	{
 		xSemaphoreGive(this->mutex);
 		return;
 	}
-//	this->duty = duty;
+#if 0
 	switch (this->id)
 	{
 	case LEFT_FORWARD:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, this->thrust);
 		break;
 	case LEFT_BACK:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, this->thrust);
 		break;
 	case RIGHT_FORWARD:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, this->thrust);
 		break;
 	case RIGHT_BACK:
-		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, duty);
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, this->thrust);
 		break;
 	}
+#endif
 	xSemaphoreGive(this->mutex);
 }

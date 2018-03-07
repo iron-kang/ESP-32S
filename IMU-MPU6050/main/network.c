@@ -34,11 +34,14 @@ void action_getInfo()
 	data.attitude.x = state->attitude.roll;
 	data.attitude.y = state->attitude.pitch;
 	data.attitude.z = state->attitude.yaw;
-	data.thrust[LEFT_FORWARD]  = motor_LF.duty;
-	data.thrust[LEFT_BACK]     = motor_LB.duty;
-	data.thrust[RIGHT_FORWARD] = motor_RF.duty;
-	data.thrust[RIGHT_BACK]    = motor_RB.duty;
+	data.thrust[LEFT_FORWARD]  = motor_LF.thrust;
+	data.thrust[LEFT_BACK]     = motor_LB.thrust;
+	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
+	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
 	memcpy(buf_out, &data, sizeof(data));
+
+//	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
+//	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 
 	netconn_write(newconn, buf_out, sizeof(data), NETCONN_NOCOPY);
 }
@@ -49,14 +52,14 @@ void action_thrust()
 	if (buf[3] == '+') thrust = 1;
 	else if (buf[3] == '-') thrust = -1;
 
-	motor_LF.duty += thrust;
-	motor_LB.duty += thrust;
-	motor_RF.duty += thrust;
-	motor_RB.duty += thrust;
-	motor_LF.update(&motor_LF, motor_LF.duty);
-	motor_LB.update(&motor_LB, motor_LB.duty);
-	motor_RF.update(&motor_RF, motor_RF.duty);
-	motor_RB.update(&motor_RB, motor_RB.duty);
+	motor_LF.thrust_base += thrust;
+	motor_LB.thrust_base += thrust;
+	motor_RF.thrust_base += thrust;
+	motor_RB.thrust_base += thrust;
+	motor_LF.update(&motor_LF);
+	motor_LB.update(&motor_LB);
+	motor_RF.update(&motor_RF);
+	motor_RB.update(&motor_RB);
 	printf("thrust\n");
 }
 

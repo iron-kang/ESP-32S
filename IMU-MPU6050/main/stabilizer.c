@@ -76,7 +76,7 @@ void stabilizerTask(void* param)
 		target.pitch = 0;
 		target.roll = 0;
 		target.yaw = 0;
-		Controller_PID(&state, &sensorData, target);
+		Controller_PID(&state, &sensorData, target, tick);
 
 		tick++;
 	}

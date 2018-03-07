@@ -331,7 +331,7 @@ void sensfusion6GetEulerRPY(float* roll, float* pitch, float* yaw)
   if (gx<-1) gx=-1;
 
   *yaw = atan2f(2*(q0*q3 + q1*q2), q0*q0 + q1*q1 - q2*q2 - q3*q3) * 180 / M_PI_F;
-  *pitch = asinf(gx) * 180 / M_PI_F; //Pitch seems to be inverted
+  *pitch = -asinf(gx) * 180 / M_PI_F; //Pitch seems to be inverted
   //*pitch = atan(gx * invSqrt(gy*gy + gz*gz)) * 180 / M_PI_F;
   *roll = atan2f(gy, gz) * 180 / M_PI_F;
   //*roll = atan(gy * invSqrt(gx*gx + gz*gz)) * 180 / M_PI_F;// / sqrt(gravity -> x*gravity -> x + gravity -> z*gravity -> z));

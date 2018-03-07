@@ -4,7 +4,7 @@
 #include "stabilizer_types.h"
 
 void Controller_Init();
-void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target);
+void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, uint32_t tick);
 
 
 #endif

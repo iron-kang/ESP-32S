@@ -364,7 +364,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 //	gy = abs(gy) > 8 ? gy : 0;
 //	gz = abs(gz) > 5 ? gz : 0;
 
-	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
+//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias);
 
