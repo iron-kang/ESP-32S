@@ -1,6 +1,7 @@
 #include "pid.h"
 
-void PID_Reset(PID *pid) {
+void PID_Reset(PID *pid)
+{
 	pid->u_1 = 0;
 	pid->error_1 = 0;
 	pid->error_2 = 0;
@@ -14,7 +15,8 @@ void PID_Init(PID *pid, float kp, float ki, float kd, float dt)
 	pid->kd = kd / dt;
 }
 
-float PID_Exe(PID *pid, float error) {
+float PID_Exe(PID *pid, float error)
+{
 	float output = 0.0;
 	/* 增量式PID
 	 * ∆u(k) = kp*(e(k)-e(k-1)) + ki*e(k) + kd(e(k)-2*e(k-1)+e(k-2))
@@ -24,7 +26,6 @@ float PID_Exe(PID *pid, float error) {
 	pid->u_1 = output;
 	pid->error_2 = pid->error_1;
 	pid->error_1 = error;
-
 
 	return output;
 }

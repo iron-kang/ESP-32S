@@ -38,10 +38,10 @@ void Motor_Init()
 	motor_LB.id = RIGHT_BACK;
 	motor_RF.id = LEFT_FORWARD;
 	motor_RB.id = LEFT_BACK;
-	motor_LF.thrust_base = 60;
-	motor_LB.thrust_base = 60;
-	motor_RF.thrust_base = 60;
-	motor_RB.thrust_base = 60;
+	motor_LF.thrust_base = 40;
+	motor_LB.thrust_base = 40;
+	motor_RF.thrust_base = 40;
+	motor_RB.thrust_base = 40;
 
 	motor_LF.thrust_extra = 0;
 	motor_LB.thrust_extra = 0;

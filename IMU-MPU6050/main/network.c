@@ -11,10 +11,11 @@
 #include "led.h"
 #include "motor.h"
 
-#define ACT_NUM 2
+#define ACT_NUM 3
 
 void action_getInfo();
 void action_thrust();
+void action_direction();
 
 struct netconn *newconn;
 char *buf;
@@ -22,9 +23,10 @@ char buf_out[50];
 state_t *state;
 Info data;
 Action actions[] = {
-	{action_getInfo, 'A'},
-	{action_thrust,  'a'},
-	{NULL,			'\0'}
+	{action_getInfo,   'A'},
+	{action_thrust,    'B'},
+	{action_direction, 'b'},
+	{NULL,			  '\0'}
 };
 
 
@@ -60,7 +62,12 @@ void action_thrust()
 	motor_LB.update(&motor_LB);
 	motor_RF.update(&motor_RF);
 	motor_RB.update(&motor_RB);
-	printf("thrust\n");
+	printf("thrust: %f\n", motor_LF.thrust_base);
+}
+
+void action_direction()
+{
+	printf("dir: %c\n", buf[3]);
 }
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -122,8 +129,6 @@ void server_task(void *pvParameters)
 						break;
 					}
 				}
-
-
 			}
 			else
 				break;

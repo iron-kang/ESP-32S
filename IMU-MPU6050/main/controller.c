@@ -2,27 +2,27 @@
 #include "pid.h"
 #include "motor.h"
 
-#define KP_ROLL_RATE  7.0
+#define KP_ROLL_RATE  7.00
 #define KI_ROLL_RATE  0.0
 #define KD_ROLL_RATE  0.0
 
-#define KP_PITCH_RATE  7.0
+#define KP_PITCH_RATE  7.00
 #define KI_PITCH_RATE  0.0
 #define KD_PITCH_RATE  0.0
 
-#define KP_YAW_RATE  0.7
+#define KP_YAW_RATE  7
 #define KI_YAW_RATE  0.167
 #define KD_YAW_RATE  0.0
 
-#define KP_ROLL  0.035
-#define KI_ROLL  0.020
+#define KP_ROLL  0.35
+#define KI_ROLL  0.20
 #define KD_ROLL  0.0
 
-#define KP_PITCH  0.035
+#define KP_PITCH  0.35
 #define KI_PITCH  0.20
 #define KD_PITCH  0.0
 
-#define KP_YAW  0.100
+#define KP_YAW  1.00
 #define KI_YAW  0.010
 #define KD_YAW  0.0035
 
@@ -52,7 +52,10 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 	attitude_t rateDesired;
 	float error;
 
-	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
+	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick))
+	{
+		if (motor_LF.thrust_base < 50) return;
+
 		rateDesired.roll  = PID_Exe(&pidRoll, target.roll - state->attitude.roll);
 		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch - state->attitude.pitch);
 		error = target.yaw - state->attitude.yaw;
