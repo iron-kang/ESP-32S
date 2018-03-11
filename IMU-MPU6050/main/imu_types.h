@@ -43,10 +43,11 @@
 	 float z;
  } AXIS;
 
- typedef struct {
+ typedef struct _pidpara{
 	 float roll[3];
 	 float pitch[3];
-	 float yaw[3];
+	 float yaw[2];
+	 float k;
  } PidParam;
 
  typedef enum {

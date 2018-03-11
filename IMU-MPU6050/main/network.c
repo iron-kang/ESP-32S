@@ -12,47 +12,68 @@
 #include "motor.h"
 #include "controller.h"
 
-#define ACT_NUM 3
+#define ACT_NUM 4
 
 void action_getInfo();
 void action_thrust();
 void action_direction();
+void action_getPID();
 
 struct netconn *newconn;
 char *buf;
-char buf_out[150];
+char buf_out[100];
 state_t *state;
 Info data;
+PidParam pid_attitude;
+PidParam pid_rate;
 Action actions[] = {
 	{action_getInfo,   'A'},
+	{action_getPID,    'a'},
 	{action_thrust,    'B'},
 	{action_direction, 'b'},
 	{NULL,			  '\0'}
 };
 
+void action_getPID()
+{
+	memset(buf_out, '0', 100);
+#if 1
+	pid_attitude.roll[KP]  = pidRoll.kp;
+	pid_attitude.roll[KI]  = pidRoll.ki;
+	pid_attitude.roll[KD]  = pidRoll.kd;
+	pid_attitude.pitch[KP] = pidPitch.kp;
+	pid_attitude.pitch[KI] = pidPitch.ki;
+	pid_attitude.pitch[KD] = pidPitch.kd;
+	pid_attitude.yaw[KP]   = pidYaw.kp;
+	pid_attitude.yaw[KI]   = pidYaw.ki;
+	pid_attitude.yaw[KD]   = pidYaw.kd;
+	pid_rate.roll[KP]  = pidRollRate.kp;
+	pid_rate.roll[KI]  = pidRollRate.ki;
+	pid_rate.roll[KD]  = pidRollRate.kd;
+	pid_rate.pitch[KP] = pidPitchRate.kp;
+	pid_rate.pitch[KI] = pidPitchRate.ki;
+	pid_rate.pitch[KD] = pidPitchRate.kd;
+	pid_rate.yaw[KP]   = pidYawRate.kp;
+	pid_rate.yaw[KI]   = pidYawRate.ki;
+	pid_rate.yaw[KD]   = pidYawRate.kd;
+#endif
+
+	buf_out[0] = 'a';
+	int size = sizeof(PidParam)*2+1;
+	memcpy(&buf_out[1], &size, sizeof(int));
+//	memcpy(&buf_out[1], pid_para, sizeof(float)*PID_NUM);
+	memcpy(&buf_out[5],&pid_attitude, sizeof(PidParam));
+	memcpy(&buf_out[5+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
+
+//	printf("yaw kd: %f\n", pid_attitude.yaw[KD]);
+	netconn_write(newconn, buf_out, sizeof(PidParam)*2+5, NETCONN_NOCOPY);
+}
+
 
 void action_getInfo()
 {
+	memset(buf_out, '0', 100);
 	state = stablizer_GetState();
-
-	data.pid_attitude.roll[KP]  = pidRoll.kp;
-	data.pid_attitude.roll[KI]  = pidRoll.ki;
-	data.pid_attitude.roll[KD]  = pidRoll.kd;
-	data.pid_attitude.pitch[KP] = pidPitch.kp;
-	data.pid_attitude.pitch[KI] = pidPitch.ki;
-	data.pid_attitude.pitch[KD] = pidPitch.kd;
-	data.pid_attitude.yaw[KP]   = pidYaw.kp;
-	data.pid_attitude.yaw[KI]   = pidYaw.ki;
-	data.pid_attitude.yaw[KD]   = pidYaw.kd;
-	data.pid_rate.roll[KP]  = pidRollRate.kp;
-	data.pid_rate.roll[KI]  = pidRollRate.ki;
-	data.pid_rate.roll[KD]  = pidRollRate.kd;
-	data.pid_rate.pitch[KP] = pidPitchRate.kp;
-	data.pid_rate.pitch[KI] = pidPitchRate.ki;
-	data.pid_rate.pitch[KD] = pidPitchRate.kd;
-	data.pid_rate.yaw[KP]   = pidYawRate.kp;
-	data.pid_rate.yaw[KI]   = pidYawRate.ki;
-	data.pid_rate.yaw[KD]   = pidYawRate.kd;
 
 	data.attitude.x = state->attitude.roll;
 	data.attitude.y = state->attitude.pitch;
@@ -62,12 +83,13 @@ void action_getInfo()
 	data.thrust[LEFT_BACK]     = motor_LB.thrust;
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
 	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
-	memcpy(buf_out, &data, sizeof(data));
+	buf_out[0] = 'A';
+	memcpy(&buf_out[1], &data, sizeof(data));
 
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 
-	netconn_write(newconn, buf_out, sizeof(data), NETCONN_NOCOPY);
+	netconn_write(newconn, buf_out, sizeof(data)+1, NETCONN_NOCOPY);
 }
 
 void action_thrust()
@@ -118,7 +140,6 @@ void server_task(void *pvParameters)
 	u16_t buflen;
 	err_t err;
 	uint8_t act;
-	int cnt = 0;
 
 	conn = netconn_new(NETCONN_TCP);
 	netconn_bind(conn, NULL, 80);
@@ -166,7 +187,7 @@ void server_task(void *pvParameters)
 
 void Network_Init()
 {
-	nvs_flash_init();
+//	nvs_flash_init();
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
