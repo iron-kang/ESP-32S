@@ -1,5 +1,4 @@
 #include "controller.h"
-#include "pid.h"
 #include "motor.h"
 
 #define KP_ROLL_RATE  7.00
@@ -27,13 +26,6 @@
 #define KD_YAW  0.0035
 
 #define DT (1/500.0)
-
-PID pidRollRate;
-PID pidPitchRate;
-PID pidYawRate;
-PID pidRoll;
-PID pidPitch;
-PID pidYaw;
 
 void Controller_Init()
 {

@@ -17,7 +17,9 @@
 
 
 typedef struct _info {
-	Axis3f attitude;
+	PidParam pid_attitude;
+	PidParam pid_rate;
+	AXIS attitude;
 	float thrust[4];
 }Info;
 

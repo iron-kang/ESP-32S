@@ -10,6 +10,7 @@
 #include "utility.h"
 #include "led.h"
 #include "motor.h"
+#include "controller.h"
 
 #define ACT_NUM 3
 
@@ -19,7 +20,7 @@ void action_direction();
 
 struct netconn *newconn;
 char *buf;
-char buf_out[50];
+char buf_out[150];
 state_t *state;
 Info data;
 Action actions[] = {
@@ -33,9 +34,30 @@ Action actions[] = {
 void action_getInfo()
 {
 	state = stablizer_GetState();
+
+	data.pid_attitude.roll[KP]  = pidRoll.kp;
+	data.pid_attitude.roll[KI]  = pidRoll.ki;
+	data.pid_attitude.roll[KD]  = pidRoll.kd;
+	data.pid_attitude.pitch[KP] = pidPitch.kp;
+	data.pid_attitude.pitch[KI] = pidPitch.ki;
+	data.pid_attitude.pitch[KD] = pidPitch.kd;
+	data.pid_attitude.yaw[KP]   = pidYaw.kp;
+	data.pid_attitude.yaw[KI]   = pidYaw.ki;
+	data.pid_attitude.yaw[KD]   = pidYaw.kd;
+	data.pid_rate.roll[KP]  = pidRollRate.kp;
+	data.pid_rate.roll[KI]  = pidRollRate.ki;
+	data.pid_rate.roll[KD]  = pidRollRate.kd;
+	data.pid_rate.pitch[KP] = pidPitchRate.kp;
+	data.pid_rate.pitch[KI] = pidPitchRate.ki;
+	data.pid_rate.pitch[KD] = pidPitchRate.kd;
+	data.pid_rate.yaw[KP]   = pidYawRate.kp;
+	data.pid_rate.yaw[KI]   = pidYawRate.ki;
+	data.pid_rate.yaw[KD]   = pidYawRate.kd;
+
 	data.attitude.x = state->attitude.roll;
 	data.attitude.y = state->attitude.pitch;
 	data.attitude.z = state->attitude.yaw;
+
 	data.thrust[LEFT_FORWARD]  = motor_LF.thrust;
 	data.thrust[LEFT_BACK]     = motor_LB.thrust;
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
