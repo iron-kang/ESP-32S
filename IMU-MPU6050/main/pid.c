@@ -10,9 +10,17 @@ void PID_Reset(PID *pid)
 void PID_Init(PID *pid, float kp, float ki, float kd, float dt)
 {
 	PID_Reset(pid);
+	pid->dt = dt;
 	pid->kp = kp;
 	pid->ki = ki * dt;
 	pid->kd = kd / dt;
+}
+
+void PID_Set(PID *pid, float kp, float ki, float kd)
+{
+	pid->kp = kp;
+	pid->ki = ki * pid->dt;
+	pid->kd = pid->kd / pid->dt;
 }
 
 float PID_Exe(PID *pid, float error)

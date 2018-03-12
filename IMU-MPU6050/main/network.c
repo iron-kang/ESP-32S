@@ -12,12 +12,13 @@
 #include "motor.h"
 #include "controller.h"
 
-#define ACT_NUM 4
+#define ACT_NUM 5
 
 void action_getInfo();
 void action_thrust();
 void action_direction();
 void action_getPID();
+void action_setPID();
 
 struct netconn *newconn;
 char *buf;
@@ -31,42 +32,51 @@ Action actions[] = {
 	{action_getPID,    'a'},
 	{action_thrust,    'B'},
 	{action_direction, 'b'},
+	{action_setPID,    'C'},
 	{NULL,			  '\0'}
 };
+
+void action_setPID()
+{
+	memcpy(&buf[3], &pid_attitude, sizeof(PidParam));
+	memcpy(&buf[3+sizeof(pid_attitude)], &pid_rate, sizeof(PidParam));
+
+	PID_Set(&pidRoll,  pid_attitude.roll[KP],  pid_attitude.roll[KI],  pid_attitude.roll[KD]);
+	PID_Set(&pidPitch, pid_attitude.pitch[KP], pid_attitude.pitch[KI], pid_attitude.pitch[KD]);
+	PID_Set(&pidYaw,   pid_attitude.yaw[KP],   pid_attitude.yaw[KI],   pid_attitude.yaw[KD]);
+
+	PID_Set(&pidRollRate,  pid_rate.roll[KP],  pid_rate.roll[KI],  pid_rate.roll[KD]);
+	PID_Set(&pidPitchRate, pid_rate.pitch[KP], pid_rate.pitch[KI], pid_rate.pitch[KD]);
+	PID_Set(&pidYawRate,   pid_rate.yaw[KP],   pid_rate.yaw[KI],   pid_rate.yaw[KD]);
+}
 
 void action_getPID()
 {
 	memset(buf_out, '0', 100);
-#if 1
 	pid_attitude.roll[KP]  = pidRoll.kp;
-	pid_attitude.roll[KI]  = pidRoll.ki;
-	pid_attitude.roll[KD]  = pidRoll.kd;
+	pid_attitude.roll[KI]  = pidRoll.ki / pidRoll.dt;
+	pid_attitude.roll[KD]  = pidRoll.kd * pidRoll.dt;
 	pid_attitude.pitch[KP] = pidPitch.kp;
-	pid_attitude.pitch[KI] = pidPitch.ki;
-	pid_attitude.pitch[KD] = pidPitch.kd;
+	pid_attitude.pitch[KI] = pidPitch.ki / pidPitch.dt;
+	pid_attitude.pitch[KD] = pidPitch.kd * pidPitch.dt;
 	pid_attitude.yaw[KP]   = pidYaw.kp;
-	pid_attitude.yaw[KI]   = pidYaw.ki;
-	pid_attitude.yaw[KD]   = pidYaw.kd;
+	pid_attitude.yaw[KI]   = pidYaw.ki / pidYaw.dt;
+	pid_attitude.yaw[KD]   = pidYaw.kd * pidYaw.dt;
 	pid_rate.roll[KP]  = pidRollRate.kp;
-	pid_rate.roll[KI]  = pidRollRate.ki;
-	pid_rate.roll[KD]  = pidRollRate.kd;
+	pid_rate.roll[KI]  = pidRollRate.ki / pidRollRate.dt;
+	pid_rate.roll[KD]  = pidRollRate.kd * pidRollRate.dt;
 	pid_rate.pitch[KP] = pidPitchRate.kp;
-	pid_rate.pitch[KI] = pidPitchRate.ki;
-	pid_rate.pitch[KD] = pidPitchRate.kd;
+	pid_rate.pitch[KI] = pidPitchRate.ki / pidPitchRate.dt;
+	pid_rate.pitch[KD] = pidPitchRate.kd * pidPitchRate.dt;
 	pid_rate.yaw[KP]   = pidYawRate.kp;
-	pid_rate.yaw[KI]   = pidYawRate.ki;
-	pid_rate.yaw[KD]   = pidYawRate.kd;
-#endif
+	pid_rate.yaw[KI]   = pidYawRate.ki / pidYawRate.dt;
+	pid_rate.yaw[KD]   = pidYawRate.kd * pidYawRate.dt;
 
 	buf_out[0] = 'a';
-	int size = sizeof(PidParam)*2+1;
-	memcpy(&buf_out[1], &size, sizeof(int));
-//	memcpy(&buf_out[1], pid_para, sizeof(float)*PID_NUM);
-	memcpy(&buf_out[5],&pid_attitude, sizeof(PidParam));
-	memcpy(&buf_out[5+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
+	memcpy(&buf_out[1],&pid_attitude, sizeof(PidParam));
+	memcpy(&buf_out[1+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
 
-//	printf("yaw kd: %f\n", pid_attitude.yaw[KD]);
-	netconn_write(newconn, buf_out, sizeof(PidParam)*2+5, NETCONN_NOCOPY);
+	netconn_write(newconn, buf_out, sizeof(PidParam)*2+1, NETCONN_COPY);
 }
 
 
