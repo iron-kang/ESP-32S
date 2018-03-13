@@ -12,13 +12,16 @@
 #include "motor.h"
 #include "controller.h"
 
-#define ACT_NUM 5
+#define ACT_NUM 8
 
 void action_getInfo();
 void action_thrust();
 void action_direction();
 void action_getPID();
 void action_setPID();
+void action_reboot();
+void action_stop();
+void action_startup();
 
 struct netconn *newconn;
 char *buf;
@@ -33,14 +36,45 @@ Action actions[] = {
 	{action_thrust,    'B'},
 	{action_direction, 'b'},
 	{action_setPID,    'C'},
+	{action_reboot,    'c'},
+	{action_stop,      'D'},
+	{action_startup,   'd'},
 	{NULL,			  '\0'}
 };
 
+void action_startup()
+{
+	motor_LF.thrust_base = 49.4;
+	motor_LB.thrust_base = 49.4;
+	motor_RF.thrust_base = 49.4;
+	motor_RB.thrust_base = 49.4;
+
+	motor_LF.update(&motor_LF);
+	motor_LB.update(&motor_LB);
+	motor_RF.update(&motor_RF);
+	motor_RB.update(&motor_RB);
+}
+
+void action_stop()
+{
+	motor_LF.d4(&motor_LF);
+	motor_LB.d4(&motor_LB);
+	motor_RF.d4(&motor_RF);
+	motor_RB.d4(&motor_RB);
+}
+
+void action_reboot()
+{
+	esp_restart();
+}
+
 void action_setPID()
 {
-	memcpy(&buf[3], &pid_attitude, sizeof(PidParam));
-	memcpy(&buf[3+sizeof(pid_attitude)], &pid_rate, sizeof(PidParam));
+	printf("save PID parameter\n");
+	memcpy(&pid_attitude, &buf[3], sizeof(PidParam));
+	memcpy(&pid_rate, &buf[3+sizeof(pid_attitude)], sizeof(PidParam));
 
+//	printf("yaw kp: %f\n", pid_attitude.yaw[KP]);
 	PID_Set(&pidRoll,  pid_attitude.roll[KP],  pid_attitude.roll[KI],  pid_attitude.roll[KD]);
 	PID_Set(&pidPitch, pid_attitude.pitch[KP], pid_attitude.pitch[KI], pid_attitude.pitch[KD]);
 	PID_Set(&pidYaw,   pid_attitude.yaw[KP],   pid_attitude.yaw[KI],   pid_attitude.yaw[KD]);
@@ -104,14 +138,14 @@ void action_getInfo()
 
 void action_thrust()
 {
-	int thrust = 0;
-	if (buf[3] == '+') thrust = 1;
-	else if (buf[3] == '-') thrust = -1;
+	float thrust = 0;
+	if (buf[3] == '+') thrust = 0.5;
+	else if (buf[3] == '-') thrust = -0.5;
 
-	motor_LF.thrust_base += thrust;
-	motor_LB.thrust_base += thrust;
-	motor_RF.thrust_base += thrust;
-	motor_RB.thrust_base += thrust;
+	motor_LF.setBaseThrust(&motor_LF, thrust);
+	motor_LB.setBaseThrust(&motor_LB, thrust);
+	motor_RF.setBaseThrust(&motor_RF, thrust);
+	motor_RB.setBaseThrust(&motor_RB, thrust);
 	motor_LF.update(&motor_LF);
 	motor_LB.update(&motor_LB);
 	motor_RF.update(&motor_RF);

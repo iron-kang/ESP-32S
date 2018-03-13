@@ -21,6 +21,8 @@ typedef struct _motor {
 	xSemaphoreHandle mutex;
 
 	void (*update)(struct _motor *this);
+	void (*d4)(struct _motor *this);
+	void (*setBaseThrust)(struct _motor *this, float val);
 }Motor;
 
 Motor motor_LF, motor_LB, motor_RF, motor_RB;

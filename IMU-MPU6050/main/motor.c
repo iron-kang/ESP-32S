@@ -3,6 +3,8 @@
 #include "common.h"
 
 void _Thrust(Motor *this);
+void _d4(Motor *this);
+void _setBaseThrust(Motor *this, float val);
 
 void Motor_Init()
 {
@@ -38,10 +40,10 @@ void Motor_Init()
 	motor_LB.id = RIGHT_BACK;
 	motor_RF.id = LEFT_FORWARD;
 	motor_RB.id = LEFT_BACK;
-	motor_LF.thrust_base = 40;
-	motor_LB.thrust_base = 40;
-	motor_RF.thrust_base = 40;
-	motor_RB.thrust_base = 40;
+	motor_LF.thrust_base = 42.0;
+	motor_LB.thrust_base = 42.0;
+	motor_RF.thrust_base = 42.0;
+	motor_RB.thrust_base = 42.0;
 
 	motor_LF.thrust_extra = 0;
 	motor_LB.thrust_extra = 0;
@@ -58,6 +60,13 @@ void Motor_Init()
 	motor_RF.update = _Thrust;
 	motor_RB.update = _Thrust;
 
+	motor_LF.d4 = _d4;
+	motor_LB.d4 = _d4;
+	motor_RF.d4 = _d4;
+	motor_RB.d4 = _d4;
+
+
+
 	motor_LF.update(&motor_LF);
 	motor_LB.update(&motor_LB);
 	motor_RF.update(&motor_RF);
@@ -69,6 +78,23 @@ void Motor_Init()
 	printf("pwm duty: %f\n", duty);
 }
 
+void _setBaseThrust(Motor *this, float val)
+{
+	if ((this->thrust_base+val) > 80)
+		this->thrust_base = 80;
+	else if ((this->thrust_base+val) < 42)
+		this->thrust_base = 42;
+	else
+		this->thrust += val;
+}
+
+void _d4(Motor *this)
+{
+	this->thrust_base = 42.0;
+	this->thrust_extra = 0;
+	this->update(this);
+}
+
 
 void _Thrust(Motor *this)
 {
@@ -76,10 +102,12 @@ void _Thrust(Motor *this)
 	this->thrust = this->thrust_base + this->thrust_extra;
 	if (this->thrust > 80 || this->thrust <42)
 	{
+		this->thrust = this->thrust > 80 ? 80 : this->thrust;
+		this->thrust = this->thrust < 42 ? 42 : this->thrust;
 		xSemaphoreGive(this->mutex);
 		return;
 	}
-#if 0
+#if 1
 	switch (this->id)
 	{
 	case LEFT_FORWARD:
