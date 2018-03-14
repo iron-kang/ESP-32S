@@ -36,5 +36,6 @@ PID pidYaw;
 
 void Controller_Init();
 void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, uint32_t tick);
+void Controller_SetPID(PidParam pid_atti, PidParam pid_rate);
 
 #endif

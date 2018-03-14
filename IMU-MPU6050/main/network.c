@@ -82,6 +82,15 @@ void action_setPID()
 	PID_Set(&pidRollRate,  pid_rate.roll[KP],  pid_rate.roll[KI],  pid_rate.roll[KD]);
 	PID_Set(&pidPitchRate, pid_rate.pitch[KP], pid_rate.pitch[KI], pid_rate.pitch[KD]);
 	PID_Set(&pidYawRate,   pid_rate.yaw[KP],   pid_rate.yaw[KI],   pid_rate.yaw[KD]);
+
+	motor_LF.thrust_extra = 0;
+	motor_LB.thrust_extra = 0;
+	motor_RF.thrust_extra = 0;
+	motor_RB.thrust_extra = 0;
+
+	Controller_SetPID(pid_attitude, pid_rate);
+
+	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
 void action_getPID()
@@ -111,6 +120,7 @@ void action_getPID()
 	memcpy(&buf_out[1+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
 
 	netconn_write(newconn, buf_out, sizeof(PidParam)*2+1, NETCONN_COPY);
+	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
 
@@ -139,17 +149,21 @@ void action_getInfo()
 void action_thrust()
 {
 	float thrust = 0;
-	if (buf[3] == '+') thrust = 0.5;
-	else if (buf[3] == '-') thrust = -0.5;
+	if (buf[3] == '+')
+	{
+		if (thrust > 62)
+			thrust = 0.5;
+		else
+			thrust = 0.5*3;
+		thrust = 0.5*2;
+	}
+	else if (buf[3] == '-') thrust = -0.5*2;
 
 	motor_LF.setBaseThrust(&motor_LF, thrust);
 	motor_LB.setBaseThrust(&motor_LB, thrust);
 	motor_RF.setBaseThrust(&motor_RF, thrust);
 	motor_RB.setBaseThrust(&motor_RB, thrust);
-	motor_LF.update(&motor_LF);
-	motor_LB.update(&motor_LB);
-	motor_RF.update(&motor_RF);
-	motor_RB.update(&motor_RB);
+
 	printf("thrust: %f\n", motor_LF.thrust_base);
 }
 

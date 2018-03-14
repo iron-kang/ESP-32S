@@ -2,7 +2,7 @@
 #include "driver/mcpwm.h"
 #include "common.h"
 
-void _Thrust(Motor *this);
+void _update(Motor *this);
 void _d4(Motor *this);
 void _setBaseThrust(Motor *this, float val);
 
@@ -29,7 +29,7 @@ void Motor_Init()
 
 	mcpwm_config_t pwm_config;
 	pwm_config.frequency = 428;    //frequency = 1000Hz
-	pwm_config.cmpr_a = 42.8;    //duty cycle of PWMxA = 50.0%
+	pwm_config.cmpr_a = 43.0;    //duty cycle of PWMxA = 50.0%
 	pwm_config.counter_mode = MCPWM_UP_COUNTER;
 	pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
 	mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
@@ -40,10 +40,10 @@ void Motor_Init()
 	motor_LB.id = RIGHT_BACK;
 	motor_RF.id = LEFT_FORWARD;
 	motor_RB.id = LEFT_BACK;
-	motor_LF.thrust_base = 42.0;
-	motor_LB.thrust_base = 42.0;
-	motor_RF.thrust_base = 42.0;
-	motor_RB.thrust_base = 42.0;
+	motor_LF.thrust_base = duty;
+	motor_LB.thrust_base = duty;
+	motor_RF.thrust_base = duty;
+	motor_RB.thrust_base = duty;
 
 	motor_LF.thrust_extra = 0;
 	motor_LB.thrust_extra = 0;
@@ -55,17 +55,20 @@ void Motor_Init()
 	motor_RF.mutex = xSemaphoreCreateMutex();
 	motor_RB.mutex = xSemaphoreCreateMutex();
 
-	motor_LF.update = _Thrust;
-	motor_LB.update = _Thrust;
-	motor_RF.update = _Thrust;
-	motor_RB.update = _Thrust;
+	motor_LF.update = _update;
+	motor_LB.update = _update;
+	motor_RF.update = _update;
+	motor_RB.update = _update;
 
 	motor_LF.d4 = _d4;
 	motor_LB.d4 = _d4;
 	motor_RF.d4 = _d4;
 	motor_RB.d4 = _d4;
 
-
+	motor_LF.setBaseThrust = _setBaseThrust;
+	motor_LB.setBaseThrust = _setBaseThrust;
+	motor_RF.setBaseThrust = _setBaseThrust;
+	motor_RB.setBaseThrust = _setBaseThrust;
 
 	motor_LF.update(&motor_LF);
 	motor_LB.update(&motor_LB);
@@ -85,7 +88,11 @@ void _setBaseThrust(Motor *this, float val)
 	else if ((this->thrust_base+val) < 42)
 		this->thrust_base = 42;
 	else
-		this->thrust += val;
+		this->thrust_base += val;
+
+	printf("thrust: %f\n", this->thrust_base);
+
+	this->update(this);
 }
 
 void _d4(Motor *this)
@@ -96,7 +103,7 @@ void _d4(Motor *this)
 }
 
 
-void _Thrust(Motor *this)
+void _update(Motor *this)
 {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	this->thrust = this->thrust_base + this->thrust_extra;

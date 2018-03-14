@@ -11,16 +11,14 @@ void PID_Init(PID *pid, float kp, float ki, float kd, float dt)
 {
 	PID_Reset(pid);
 	pid->dt = dt;
-	pid->kp = kp;
-	pid->ki = ki * dt;
-	pid->kd = kd / dt;
+	PID_Set(pid, kp, ki, kd);
 }
 
 void PID_Set(PID *pid, float kp, float ki, float kd)
 {
 	pid->kp = kp;
 	pid->ki = ki * pid->dt;
-	pid->kd = pid->kd / pid->dt;
+	pid->kd = kd / pid->dt;
 }
 
 float PID_Exe(PID *pid, float error)
