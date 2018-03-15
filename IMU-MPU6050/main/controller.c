@@ -155,8 +155,8 @@ void Controller_SetPID(PidParam pid_atti, PidParam pid_rate)
 	nvs_set_u16(nvs, pid_key[PID_PITCH_RATE_KI], (uint16_t)(pid_rate.pitch[KI]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_PITCH_RATE_KD], (uint16_t)(pid_rate.pitch[KD]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KP], (uint16_t)(pid_rate.yaw[KP]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KP], (uint16_t)(pid_rate.yaw[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KP], (uint16_t)(pid_rate.yaw[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KI], (uint16_t)(pid_rate.yaw[KI]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KD], (uint16_t)(pid_rate.yaw[KD]*SCALE));
 }
 
 void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, uint32_t tick)
@@ -188,7 +188,7 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 		motor_LB.thrust_extra = -thrust_pitch + thrust_roll + thrust_yaw;
 		motor_RB.thrust_extra = -thrust_pitch - thrust_roll - thrust_yaw;
 
-//		printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust_extra, motor_LB.thrust_extra, motor_RF.thrust_extra, motor_RB.thrust_extra);
+		printf("rpy_u: %f, %f, %f\n", thrust_roll, thrust_pitch, thrust_yaw);
 
 		motor_LF.update(&motor_LF);
 		motor_LB.update(&motor_LB);

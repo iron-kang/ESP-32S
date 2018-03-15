@@ -14,18 +14,21 @@
 
 #define ACT_NUM 8
 
-void action_getInfo();
-void action_thrust();
-void action_direction();
-void action_getPID();
-void action_setPID();
-void action_reboot();
-void action_stop();
-void action_startup();
+typedef struct _tskpara {
+	struct netconn *newconn;
+	char buf_out[100];
+}TaskPara;
 
-struct netconn *newconn;
-char *buf;
-char buf_out[100];
+void action_getInfo(char *buf_in, TaskPara *para);
+void action_thrust(char *buf_in, TaskPara *para);
+void action_direction(char *buf_in, TaskPara *para);
+void action_getPID(char *buf_in, TaskPara *para);
+void action_setPID(char *buf_in, TaskPara *para);
+void action_reboot(char *buf_in, TaskPara *para);
+void action_stop(char *buf_in, TaskPara *para);
+void action_startup(char *buf_in, TaskPara *para);
+
+uint8_t connect_num = 0;
 state_t *state;
 Info data;
 PidParam pid_attitude;
@@ -42,7 +45,7 @@ Action actions[] = {
 	{NULL,			  '\0'}
 };
 
-void action_startup()
+void action_startup(char *buf_in, TaskPara *para)
 {
 	motor_LF.thrust_base = 49.4;
 	motor_LB.thrust_base = 49.4;
@@ -55,7 +58,7 @@ void action_startup()
 	motor_RB.update(&motor_RB);
 }
 
-void action_stop()
+void action_stop(char *buf_in, TaskPara *para)
 {
 	motor_LF.d4(&motor_LF);
 	motor_LB.d4(&motor_LB);
@@ -63,16 +66,16 @@ void action_stop()
 	motor_RB.d4(&motor_RB);
 }
 
-void action_reboot()
+void action_reboot(char *buf_in, TaskPara *para)
 {
 	esp_restart();
 }
 
-void action_setPID()
+void action_setPID(char *buf_in, TaskPara *para)
 {
 	printf("save PID parameter\n");
-	memcpy(&pid_attitude, &buf[3], sizeof(PidParam));
-	memcpy(&pid_rate, &buf[3+sizeof(pid_attitude)], sizeof(PidParam));
+	memcpy(&pid_attitude, &buf_in[3], sizeof(PidParam));
+	memcpy(&pid_rate, &buf_in[3+sizeof(pid_attitude)], sizeof(PidParam));
 
 //	printf("yaw kp: %f\n", pid_attitude.yaw[KP]);
 	PID_Set(&pidRoll,  pid_attitude.roll[KP],  pid_attitude.roll[KI],  pid_attitude.roll[KD]);
@@ -93,9 +96,9 @@ void action_setPID()
 	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
-void action_getPID()
+void action_getPID(char *buf_in, TaskPara *para)
 {
-	memset(buf_out, '0', 100);
+	memset(para->buf_out, '0', 100);
 	pid_attitude.roll[KP]  = pidRoll.kp;
 	pid_attitude.roll[KI]  = pidRoll.ki / pidRoll.dt;
 	pid_attitude.roll[KD]  = pidRoll.kd * pidRoll.dt;
@@ -115,18 +118,18 @@ void action_getPID()
 	pid_rate.yaw[KI]   = pidYawRate.ki / pidYawRate.dt;
 	pid_rate.yaw[KD]   = pidYawRate.kd * pidYawRate.dt;
 
-	buf_out[0] = 'a';
-	memcpy(&buf_out[1],&pid_attitude, sizeof(PidParam));
-	memcpy(&buf_out[1+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
+	para->buf_out[0] = 'a';
+	memcpy(&para->buf_out[1],&pid_attitude, sizeof(PidParam));
+	memcpy(&para->buf_out[1+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
 
-	netconn_write(newconn, buf_out, sizeof(PidParam)*2+1, NETCONN_COPY);
+	netconn_write(para->newconn, para->buf_out, sizeof(PidParam)*2+1, NETCONN_COPY);
 	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
 
-void action_getInfo()
+void action_getInfo(char *buf_in, TaskPara *para)
 {
-	memset(buf_out, '0', 100);
+	memset(para->buf_out, '0', 100);
 	state = stablizer_GetState();
 
 	data.attitude.x = state->attitude.roll;
@@ -137,19 +140,19 @@ void action_getInfo()
 	data.thrust[LEFT_BACK]     = motor_LB.thrust;
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
 	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
-	buf_out[0] = 'A';
-	memcpy(&buf_out[1], &data, sizeof(data));
+	para->buf_out[0] = 'A';
+	memcpy(&para->buf_out[1], &data, sizeof(data));
 
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 
-	netconn_write(newconn, buf_out, sizeof(data)+1, NETCONN_NOCOPY);
+	netconn_write(para->newconn, para->buf_out, sizeof(data)+1, NETCONN_NOCOPY);
 }
 
-void action_thrust()
+void action_thrust(char *buf_in, TaskPara *para)
 {
 	float thrust = 0;
-	if (buf[3] == '+')
+	if (buf_in[3] == '+')
 	{
 		if (thrust > 62)
 			thrust = 0.5;
@@ -157,7 +160,7 @@ void action_thrust()
 			thrust = 0.5*3;
 		thrust = 0.5*2;
 	}
-	else if (buf[3] == '-') thrust = -0.5*2;
+	else if (buf_in[3] == '-') thrust = -0.5*2;
 
 	motor_LF.setBaseThrust(&motor_LF, thrust);
 	motor_LB.setBaseThrust(&motor_LB, thrust);
@@ -167,9 +170,9 @@ void action_thrust()
 	printf("thrust: %f\n", motor_LF.thrust_base);
 }
 
-void action_direction()
+void action_direction(char *buf_in, TaskPara *para)
 {
-	printf("dir: %c\n", buf[3]);
+
 }
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -191,13 +194,48 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 	return ESP_OK;
 }
 
+void client_task(void *pvParameters)
+{
+	uint8_t act;
+	err_t err;
+	u16_t buflen;
+	struct netbuf *inbuf;
+	char *buf;
+	TaskPara *para = (TaskPara *) pvParameters;
+
+	while (true) {
+		err = netconn_recv(para->newconn, &inbuf);
+		if (err == ERR_OK)
+		{
+			netbuf_data(inbuf, (void**)&buf, &buflen);
+
+			if ((buf[0] != '@') || (buf[1] != '#'))
+				continue;
+//				printf(" %c\n", buf[2]);
+			netbuf_delete(inbuf);
+
+			for (act = 0; act < ACT_NUM; act++)
+			{
+				if (buf[2] == actions[act].header)
+				{
+					actions[act].action(buf, para);
+					break;
+				}
+			}
+		}
+		else
+			break;
+
+	}
+	netconn_delete(para->newconn);
+	free(para);
+	vTaskDelete(NULL);
+}
+
 void server_task(void *pvParameters)
 {
-	struct netbuf *inbuf;
 	struct netconn *conn;
-	u16_t buflen;
 	err_t err;
-	uint8_t act;
 
 	conn = netconn_new(NETCONN_TCP);
 	netconn_bind(conn, NULL, 80);
@@ -206,36 +244,12 @@ void server_task(void *pvParameters)
 
 	while (true) {
 		printf("New client connected\n");
-		err = netconn_accept(conn, &newconn);
+		TaskPara *para = (TaskPara *) malloc(sizeof(TaskPara));
+		err = netconn_accept(conn, &para->newconn);
 
-		while (true) {
-//			printf("loop...");
-			err = netconn_recv(newconn, &inbuf);
-//			printf("ok (%d)", cnt++);
-			if (err == ERR_OK)
-			{
-				netbuf_data(inbuf, (void**)&buf, &buflen);
-//				for (int i = 0; i < buflen; i++)
-//					printf("%x ", buf[i]);
-				if ((buf[0] != '@') || (buf[1] != '#'))
-					continue;
-//				printf(" %c\n", buf[2]);
-				netbuf_delete(inbuf);
 
-				for (act = 0; act < ACT_NUM; act++)
-				{
-					if (buf[2] == actions[act].header)
-					{
-						actions[act].action();
-						break;
-					}
-				}
-			}
-			else
-				break;
+		xTaskCreate(&client_task, "client-task", 2048, para, NETWORK_TASK_PRI, NULL);
 
-		}
-		netconn_delete(newconn);
 	}
 	netconn_close(conn);
 	netconn_delete(conn);
