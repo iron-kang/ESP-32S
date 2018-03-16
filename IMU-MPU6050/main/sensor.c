@@ -362,7 +362,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 
 //	gx = abs(gx) > 8 ? gx : 0;
 //	gy = abs(gy) > 8 ? gy : 0;
-//	gz = abs(gz) > 5 ? gz : 0;
+	gz = abs(gz) > 8 ? gz : 0;
 
 //	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
 

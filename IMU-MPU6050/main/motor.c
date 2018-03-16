@@ -114,7 +114,7 @@ void _update(Motor *this)
 		xSemaphoreGive(this->mutex);
 		return;
 	}
-#if 0
+#if 1
 	switch (this->id)
 	{
 	case LEFT_FORWARD:

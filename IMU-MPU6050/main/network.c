@@ -167,7 +167,7 @@ void action_thrust(char *buf_in, TaskPara *para)
 	motor_RF.setBaseThrust(&motor_RF, thrust);
 	motor_RB.setBaseThrust(&motor_RB, thrust);
 
-	printf("thrust: %f\n", motor_LF.thrust_base);
+//	printf("thrust: %f\n", motor_LF.thrust_base);
 }
 
 void action_direction(char *buf_in, TaskPara *para)

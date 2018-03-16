@@ -166,7 +166,7 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 
 	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick))
 	{
-		if (motor_LF.thrust_base < 57) return;
+		if (motor_LF.thrust_base < 59) return;
 
 		rateDesired.roll  = PID_Exe(&pidRoll, target.roll - state->attitude.roll);
 		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch - state->attitude.pitch);
@@ -183,12 +183,12 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 		float thrust_yaw   = rateDesired.yaw;//PID_Exe(&pidYawRate, rateDesired.yaw - sensors->gyro.z);
 
 
-		motor_LF.thrust_extra =  thrust_pitch + thrust_roll - thrust_yaw;
-		motor_RF.thrust_extra =  thrust_pitch - thrust_roll + thrust_yaw;
-		motor_LB.thrust_extra = -thrust_pitch + thrust_roll + thrust_yaw;
-		motor_RB.thrust_extra = -thrust_pitch - thrust_roll - thrust_yaw;
+		motor_LF.thrust_extra =  thrust_pitch + thrust_roll + thrust_yaw;
+		motor_RF.thrust_extra =  thrust_pitch - thrust_roll - thrust_yaw;
+		motor_LB.thrust_extra = -thrust_pitch + thrust_roll - thrust_yaw;
+		motor_RB.thrust_extra = -thrust_pitch - thrust_roll + thrust_yaw;
 
-		printf("rpy_u: %f, %f, %f\n", thrust_roll, thrust_pitch, thrust_yaw);
+//		printf("rpy_u: %f, %f, %f\n", thrust_roll, thrust_pitch, thrust_yaw);
 
 		motor_LF.update(&motor_LF);
 		motor_LB.update(&motor_LB);
