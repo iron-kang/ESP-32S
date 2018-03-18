@@ -28,7 +28,7 @@ float PID_Exe(PID *pid, float error)
 	 * ∆u(k) = kp*(e(k)-e(k-1)) + ki*e(k) + kd(e(k)-2*e(k-1)+e(k-2))
 	 * u(k) = u(k-1) + ∆u(k)
 	 */
-	output = pid->u_1 + pid->kp*(error - pid->error_1) + pid->ki*error + pid->kd*(error - 2*pid->error_1 + pid->error_2);
+	output = pid->u_1*0 + pid->kp*(error - pid->error_1) + pid->ki*error + pid->kd*(error - 2*pid->error_1 + pid->error_2);
 	pid->u_1 = output;
 	pid->error_2 = pid->error_1;
 	pid->error_1 = error;

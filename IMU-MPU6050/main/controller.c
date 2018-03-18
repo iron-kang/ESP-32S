@@ -23,24 +23,24 @@
 #define NVS_KEY_YAW_KP   "yaw-kp"
 #define NVS_KEY_YAW_KI   "yaw-ki"
 #define NVS_KEY_YAW_KD   "yaw-kd"
-#define KP_ROLL_RATE  		7.00
+#define KP_ROLL_RATE  		70.0
 #define KI_ROLL_RATE  		0.0
 #define KD_ROLL_RATE  		0.0
-#define KP_PITCH_RATE  		7.00
+#define KP_PITCH_RATE  		70.0
 #define KI_PITCH_RATE  		0.0
 #define KD_PITCH_RATE  		0.0
-#define KP_YAW_RATE  		7
-#define KI_YAW_RATE  		0.167
+#define KP_YAW_RATE  		70.0
+#define KI_YAW_RATE  		16.7
 #define KD_YAW_RATE  		0.0
-#define KP_ROLL  			0.35
-#define KI_ROLL  			0.20
+#define KP_ROLL  			3.5
+#define KI_ROLL  			2.0
 #define KD_ROLL  			0.0
-#define KP_PITCH  			0.35
-#define KI_PITCH  			0.20
+#define KP_PITCH  			3.5
+#define KI_PITCH  			2.0
 #define KD_PITCH  			0.0
-#define KP_YAW  			1.00
-#define KI_YAW  			0.010
-#define KD_YAW  			0.0035
+#define KP_YAW  			10.0
+#define KI_YAW  			1.0
+#define KD_YAW  			0.35
 #define DT 					(1/500.0)
 
 
@@ -87,7 +87,7 @@ float pid_para[PID_NUM] = {
 };
 
 nvs_handle nvs;
-const float SCALE = 100000.0;
+const float SCALE = 1000.0;
 
 void Controller_Init()
 {
@@ -181,7 +181,6 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 		float thrust_roll  = rateDesired.roll;//PID_Exe(&pidRollRate, rateDesired.roll - sensors->gyro.x);
 		float thrust_pitch = rateDesired.pitch;//PID_Exe(&pidPitchRate, rateDesired.pitch - sensors->gyro.y);
 		float thrust_yaw   = rateDesired.yaw;//PID_Exe(&pidYawRate, rateDesired.yaw - sensors->gyro.z);
-
 
 		motor_LF.thrust_extra =  thrust_pitch + thrust_roll + thrust_yaw;
 		motor_RF.thrust_extra =  thrust_pitch - thrust_roll - thrust_yaw;
