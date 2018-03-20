@@ -166,7 +166,7 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 
 	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick))
 	{
-		if (motor_LF.thrust_base < 59) return;
+		if (motor_LF.thrust_base < 57) return;
 
 		rateDesired.roll  = PID_Exe(&pidRoll, target.roll - state->attitude.roll);
 		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch - state->attitude.pitch);
