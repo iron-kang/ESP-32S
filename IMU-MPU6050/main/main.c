@@ -8,24 +8,13 @@
 #include "bus.h"
 #include "hmc5883l.h"
 #include "sdkconfig.h"
-#include "ssd1306.h"
 #include "stabilizer.h"
 #include "led.h"
 #include "motor.h"
 #include "mqtt.h"
 #include "network.h"
+#include "system.h"
 
-#define OLED_SDI  12
-#define OLED_SDO  13
-#define OLED_SCK  14
-#define OLED_CS   15
-#define OLED_DC   27
-#define OLED_RES  25
-#define COMPASSADDR   HMC5883L_ADDRESS
-#define IMUADDR   MPU6050_ADDRESS_AD0_LOW
-
-HMC5883L compass;
-SSD1306 ssd1306;
 Bus bus;
 
 void init()
@@ -46,25 +35,8 @@ void init()
 
     Stabilizer();
     Network_Init();
+    System_Init();
 
-//    i2c.setAddr(&i2c, COMPASSADDR);
-//    compass.i2c = &i2c;
-//    ret = HMC5883L_Init(&compass);
-//    if (ret != ESP_OK)
-//        printf("Compass fail\n");
-
-//    compass.checkSettings(&compass);
-
-//    ssd1306.sdi = OLED_SDI;
-//    ssd1306.sdo = OLED_SDO;
-//    ssd1306.sck = OLED_SCK;
-//    ssd1306.cs  = OLED_CS;
-//    ssd1306.dc  = OLED_DC;
-//    ssd1306.res = OLED_RES;
-//    SSD1306_init(&ssd1306);
-//    ssd1306.SSD1306_begin(&ssd1306);
-//    ssd1306.SSD1306_bitmap(&ssd1306, 0, 0, waveshare, 128, 64);
-//    ssd1306.SSD1306_display(&ssd1306);
 }
 
 void mqtt_task(void *pvParameters)

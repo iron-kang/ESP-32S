@@ -1,7 +1,6 @@
 #include <math.h>
 #include "sensor.h"
 #include "imu_types.h"
-#include "stabilizer_types.h"
 #include "mpu6050.h"
 #include "ak8963.h"
 #include "config.h"

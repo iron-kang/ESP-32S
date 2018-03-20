@@ -11,6 +11,7 @@
 #include "led.h"
 #include "motor.h"
 #include "controller.h"
+#include "system.h"
 
 #define ACT_NUM 8
 
@@ -129,7 +130,7 @@ void action_getPID(char *buf_in, TaskPara *para)
 
 void action_getInfo(char *buf_in, TaskPara *para)
 {
-	memset(para->buf_out, '0', 100);
+//	memset(para->buf_out, '0', 100);
 	state = stablizer_GetState();
 
 	data.attitude.x = state->attitude.roll;
@@ -140,9 +141,11 @@ void action_getInfo(char *buf_in, TaskPara *para)
 	data.thrust[LEFT_BACK]     = motor_LB.thrust;
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
 	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
+	System_GetBatVal(&data.bat);
 	para->buf_out[0] = 'A';
 	memcpy(&para->buf_out[1], &data, sizeof(data));
 
+//	printf("bat: %f\n", data.bat);
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 

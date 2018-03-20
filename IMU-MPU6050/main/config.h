@@ -7,6 +7,7 @@
 #define SENSORS_TASK_PRI        4
 #define STABILIZER_TASK_PRI     4
 #define NETWORK_TASK_PRI        3
+#define SYSTEM_TASK_PRI			3
 
 #define TASK_LED_ID_NBR         1
 #define TASK_RADIO_ID_NBR       2
