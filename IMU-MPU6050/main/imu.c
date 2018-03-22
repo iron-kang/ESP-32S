@@ -1,4 +1,8 @@
-#include "mpu6050.h"
+#include "imu.h"
+
+#define MPU6050 0
+#define MPU9250 1
+#define IMU_TYPE MPU6050
 
 const unsigned short mpu6050StTb[256] = {
   2620,2646,2672,2699,2726,2753,2781,2808, //7
@@ -35,42 +39,42 @@ const unsigned short mpu6050StTb[256] = {
   30903,31212,31524,31839,32157,32479,32804,33132
 };
 
-void _reset(MPU6050 *self);
-void _setDLPFMode(MPU6050 *self, uint8_t mode);
-void _setRate(MPU6050 *self, uint8_t rate);
-void _setAccelDLPF(MPU6050 *self, uint8_t range);
-void _setTempSensorEnabled(MPU6050 *self, bool enabled);
-void _setIntEnabled(MPU6050 *self, uint8_t enabled);
-void _setClockSource(MPU6050 *self, uint8_t source);
-void _setFullScaleGyroRange(MPU6050 *self, uint8_t range);
-void _setFullScaleAccelRange(MPU6050 *self, uint8_t range);
-void _setSleepEnabled(MPU6050 *self, bool enabled);
-void _getMotion(MPU6050 *self);
-void _setI2CBypassEnabled(MPU6050 *self, bool enabled);
-void _setI2CMasterModeEnabled(MPU6050 *self, bool enabled);
-void _readAllRaw(MPU6050 *self, uint8_t *buffer, uint8_t len);
-float _getFullScaleAccelGPL(MPU6050 *self);
-uint8_t _getFullScaleAccelRangeId(MPU6050 *self);
-bool _testConnection(MPU6050 *self);
-void _setSlave4MasterDelay(MPU6050 *self, uint8_t delay);
-void _setWaitForExternalSensorEnabled(MPU6050 *self, bool enabled);
-void _setInterruptMode(MPU6050 *self, bool mode);
-void _setInterruptDrive(MPU6050 *self, bool drive);
-void _setInterruptLatch(MPU6050 *self, bool latch);
-void _setInterruptLatchClear(MPU6050 *self, bool clear);
-void _setSlaveReadWriteTransitionEnabled(MPU6050 *self, bool enabled);
-void _setMasterClockSpeed(MPU6050 *self, uint8_t speed);
-void _setSlaveAddress(MPU6050 *self, uint8_t num, uint8_t address);
-void _setSlaveRegister(MPU6050 *self, uint8_t num, uint8_t reg);
-void _setSlaveDataLength(MPU6050 *self, uint8_t num, uint8_t length);
-void _setSlaveDelayEnabled(MPU6050 *self, uint8_t num, bool enabled);
-void _setIntDataReadyEnabled(MPU6050 *self, bool enabled);
-void _setSlaveEnabled(MPU6050 *self, uint8_t num, bool enabled);
-bool _selfTest(MPU6050 *self);
-bool _evaluateSelfTest(MPU6050 *self, float low, float high, float value, char* string);
-void _calibrate(MPU6050 *self);
+void _reset(IMU *self);
+void _setDLPFMode(IMU *self, uint8_t mode);
+void _setRate(IMU *self, uint8_t rate);
+void _setAccelDLPF(IMU *self, uint8_t range);
+void _setTempSensorEnabled(IMU *self, bool enabled);
+void _setIntEnabled(IMU *self, uint8_t enabled);
+void _setClockSource(IMU *self, uint8_t source);
+void _setFullScaleGyroRange(IMU *self, uint8_t range);
+void _setFullScaleAccelRange(IMU *self, uint8_t range);
+void _setSleepEnabled(IMU *self, bool enabled);
+void _getMotion(IMU *self);
+void _setI2CBypassEnabled(IMU *self, bool enabled);
+void _setI2CMasterModeEnabled(IMU *self, bool enabled);
+void _readAllRaw(IMU *self, uint8_t *buffer, uint8_t len);
+float _getFullScaleAccelGPL(IMU *self);
+uint8_t _getFullScaleAccelRangeId(IMU *self);
+bool _testConnection(IMU *self);
+void _setSlave4MasterDelay(IMU *self, uint8_t delay);
+void _setWaitForExternalSensorEnabled(IMU *self, bool enabled);
+void _setInterruptMode(IMU *self, bool mode);
+void _setInterruptDrive(IMU *self, bool drive);
+void _setInterruptLatch(IMU *self, bool latch);
+void _setInterruptLatchClear(IMU *self, bool clear);
+void _setSlaveReadWriteTransitionEnabled(IMU *self, bool enabled);
+void _setMasterClockSpeed(IMU *self, uint8_t speed);
+void _setSlaveAddress(IMU *self, uint8_t num, uint8_t address);
+void _setSlaveRegister(IMU *self, uint8_t num, uint8_t reg);
+void _setSlaveDataLength(IMU *self, uint8_t num, uint8_t length);
+void _setSlaveDelayEnabled(IMU *self, uint8_t num, bool enabled);
+void _setIntDataReadyEnabled(IMU *self, bool enabled);
+void _setSlaveEnabled(IMU *self, uint8_t num, bool enabled);
+bool _selfTest(IMU *self);
+bool _evaluateSelfTest(IMU *self, float low, float high, float value, char* string);
+void _calibrate(IMU *self);
 
-void MPU6050_Init(MPU6050 *mpu, uint8_t addr)
+void IMU_Init(IMU *mpu, uint8_t addr)
 {
 	mpu->devAddr 				  = addr;
     mpu->reset                    = _reset;
@@ -108,31 +112,31 @@ void MPU6050_Init(MPU6050 *mpu, uint8_t addr)
     mpu->calibrate                = _calibrate;
 }
 
-void _reset(MPU6050 *self)
+void _reset(IMU *self)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_DEVICE_RESET_BIT, 1);
 }
 
-bool _testConnection(MPU6050 *self)
+bool _testConnection(IMU *self)
 {
 	uint8_t data;
 	self->i2c->readBits(self->i2c, self->devAddr, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH, &data);
 	printf("who am i %x\n", data);
 
-	return data == 0x39;//0x38;
+	return data == 0x34;//0x39;//0x38;
 }
 
-void _readAllRaw(MPU6050 *self, uint8_t *buffer, uint8_t len)
+void _readAllRaw(IMU *self, uint8_t *buffer, uint8_t len)
 {
 	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ACCEL_XOUT_H, buffer, len);
 }
 
-void _setDLPFMode(MPU6050 *self, uint8_t mode)
+void _setDLPFMode(IMU *self, uint8_t mode)
 {
 	self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_CONFIG, MPU6050_CFG_DLPF_CFG_BIT, MPU6050_CFG_DLPF_CFG_LENGTH, mode);
 }
 
-void _setRate(MPU6050 *self, uint8_t rate)
+void _setRate(IMU *self, uint8_t rate)
 {
 	uint8_t cmd[2];
 	cmd[0] = MPU6050_RA_SMPLRT_DIV;
@@ -140,12 +144,12 @@ void _setRate(MPU6050 *self, uint8_t rate)
 	self->i2c->write(self->i2c, self->devAddr, cmd, 2);
 }
 
-void _setAccelDLPF(MPU6050 *self, uint8_t range)
+void _setAccelDLPF(IMU *self, uint8_t range)
 {
 	self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_ACCEL_CONFIG_2, MPU6050_ACONFIG2_DLPF_BIT, MPU6050_ACONFIG2_DLPF_LENGTH, range);
 }
 
-void _setIntEnabled(MPU6050 *self, uint8_t enabled)
+void _setIntEnabled(IMU *self, uint8_t enabled)
 {
 	uint8_t cmd[2];
 	cmd[0] = MPU6050_RA_INT_ENABLE;
@@ -153,34 +157,34 @@ void _setIntEnabled(MPU6050 *self, uint8_t enabled)
 	self->i2c->write(self->i2c, self->devAddr, cmd, 2);
 }
 
-void _setClockSource(MPU6050 *self, uint8_t source)
+void _setClockSource(IMU *self, uint8_t source)
 {
     self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
 }
 
-void _setFullScaleGyroRange(MPU6050 *self, uint8_t range)
+void _setFullScaleGyroRange(IMU *self, uint8_t range)
 {
     self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
 }
 
-void _setFullScaleAccelRange(MPU6050 *self, uint8_t range)
+void _setFullScaleAccelRange(IMU *self, uint8_t range)
 {
     self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
 }
 
-uint8_t _getFullScaleAccelRangeId(MPU6050 *self)
+uint8_t _getFullScaleAccelRangeId(IMU *self)
 {
 	self->i2c->readBits(self->i2c, self->devAddr, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT,
       MPU6050_ACONFIG_AFS_SEL_LENGTH, self->buffer);
   return self->buffer[0];
 }
 
-void _setSleepEnabled(MPU6050 *self, bool enabled)
+void _setSleepEnabled(IMU *self, bool enabled)
 {
     self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
 }
 
-void _setI2CBypassEnabled(MPU6050 *self, bool enabled) 
+void _setI2CBypassEnabled(IMU *self, bool enabled)
 {
     self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_I2C_BYPASS_EN_BIT, enabled);
 }
@@ -191,17 +195,17 @@ void _setI2CBypassEnabled(MPU6050 *self, bool enabled)
  * @see MPU6050_RA_USER_CTRL
  * @see MPU6050_USERCTRL_I2C_MST_EN_BIT
  */
-void _setI2CMasterModeEnabled(MPU6050 *self, bool enabled) 
+void _setI2CMasterModeEnabled(IMU *self, bool enabled)
 {
     self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
 }
 
-void _setTempSensorEnabled(MPU6050 *self, bool enabled)
+void _setTempSensorEnabled(IMU *self, bool enabled)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_TEMP_DIS_BIT, !enabled);
 }
 
-void _getMotion(MPU6050 *self)
+void _getMotion(IMU *self)
 {
     self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ACCEL_XOUT_H, self->buffer, 14);
 
@@ -213,7 +217,7 @@ void _getMotion(MPU6050 *self)
     self->gz = (((int16_t)self->buffer[12]) << 8) | self->buffer[13];
 }
 
-float _getFullScaleAccelGPL(MPU6050 *self)
+float _getFullScaleAccelGPL(IMU *self)
 {
 	int32_t rangeId;
 	float range;
@@ -246,7 +250,7 @@ float _getFullScaleAccelGPL(MPU6050 *self)
  * @see getSlave4MasterDelay()
  * @see MPU6050_RA_I2C_SLV4_CTRL
  */
-void _setSlave4MasterDelay(MPU6050 *self, uint8_t delay)
+void _setSlave4MasterDelay(IMU *self, uint8_t delay)
 {
 	self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_I2C_SLV4_CTRL, MPU6050_I2C_SLV4_MST_DLY_BIT,
 			MPU6050_I2C_SLV4_MST_DLY_LENGTH, delay);
@@ -257,7 +261,7 @@ void _setSlave4MasterDelay(MPU6050 *self, uint8_t delay)
  * @see getWaitForExternalSensorEnabled()
  * @see MPU6050_RA_I2C_MST_CTRL
  */
-void _setWaitForExternalSensorEnabled(MPU6050 *self, bool enabled)
+void _setWaitForExternalSensorEnabled(IMU *self, bool enabled)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT, enabled);
 }
@@ -268,7 +272,7 @@ void _setWaitForExternalSensorEnabled(MPU6050 *self, bool enabled)
  * @see MPU6050_RA_INT_PIN_CFG
  * @see MPU6050_INTCFG_INT_LEVEL_BIT
  */
-void _setInterruptMode(MPU6050 *self, bool mode)
+void _setInterruptMode(IMU *self, bool mode)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_LEVEL_BIT, mode);
 }
@@ -279,7 +283,7 @@ void _setInterruptMode(MPU6050 *self, bool mode)
  * @see MPU6050_RA_INT_PIN_CFG
  * @see MPU6050_INTCFG_INT_OPEN_BIT
  */
-void _setInterruptDrive(MPU6050 *self, bool drive)
+void _setInterruptDrive(IMU *self, bool drive)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_OPEN_BIT, drive);
 }
@@ -290,7 +294,7 @@ void _setInterruptDrive(MPU6050 *self, bool drive)
  * @see MPU6050_RA_INT_PIN_CFG
  * @see MPU6050_INTCFG_LATCH_INT_EN_BIT
  */
-void _setInterruptLatch(MPU6050 *self, bool latch)
+void _setInterruptLatch(IMU *self, bool latch)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_LATCH_INT_EN_BIT, latch);
 }
@@ -301,7 +305,7 @@ void _setInterruptLatch(MPU6050 *self, bool latch)
  * @see MPU6050_RA_INT_PIN_CFG
  * @see MPU6050_INTCFG_INT_RD_CLEAR_BIT
  */
-void _setInterruptLatchClear(MPU6050 *self, bool clear)
+void _setInterruptLatchClear(IMU *self, bool clear)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_INT_PIN_CFG, MPU6050_INTCFG_INT_RD_CLEAR_BIT, clear);
 }
@@ -311,7 +315,7 @@ void _setInterruptLatchClear(MPU6050 *self, bool clear)
  * @see getSlaveReadWriteTransitionEnabled()
  * @see MPU6050_RA_I2C_MST_CTRL
  */
-void _setSlaveReadWriteTransitionEnabled(MPU6050 *self, bool enabled)
+void _setSlaveReadWriteTransitionEnabled(IMU *self, bool enabled)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT, enabled);
 }
@@ -320,13 +324,13 @@ void _setSlaveReadWriteTransitionEnabled(MPU6050 *self, bool enabled)
  * @reparam speed Current I2C master clock speed
  * @see MPU6050_RA_I2C_MST_CTRL
  */
-void _setMasterClockSpeed(MPU6050 *self, uint8_t speed)
+void _setMasterClockSpeed(IMU *self, uint8_t speed)
 {
 	self->i2c->writeBits(self->i2c, self->devAddr, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT,
 			MPU6050_I2C_MST_CLK_LENGTH, speed);
 }
 
-void _setSlaveAddress(MPU6050 *self, uint8_t num, uint8_t address)
+void _setSlaveAddress(IMU *self, uint8_t num, uint8_t address)
 {
 	if (num > 3)
 		return;
@@ -342,7 +346,7 @@ void _setSlaveAddress(MPU6050 *self, uint8_t num, uint8_t address)
  * @see getSlaveRegister()
  * @see MPU6050_RA_I2C_SLV0_REG
  */
-void _setSlaveRegister(MPU6050 *self, uint8_t num, uint8_t reg)
+void _setSlaveRegister(IMU *self, uint8_t num, uint8_t reg)
 {
 	if (num > 3)
 		return;
@@ -358,7 +362,7 @@ void _setSlaveRegister(MPU6050 *self, uint8_t num, uint8_t reg)
  * @see getSlaveDataLength()
  * @see MPU6050_RA_I2C_SLV0_CTRL
  */
-void _setSlaveDataLength(MPU6050 *self, uint8_t num, uint8_t length)
+void _setSlaveDataLength(IMU *self, uint8_t num, uint8_t length)
 {
 	if (num > 3)
 		return;
@@ -373,7 +377,7 @@ void _setSlaveDataLength(MPU6050 *self, uint8_t num, uint8_t length)
  * @see getSlaveEnabled()
  * @see MPU6050_RA_I2C_SLV0_CTRL
  */
-void _setSlaveEnabled(MPU6050 *self, uint8_t num, bool enabled)
+void _setSlaveEnabled(IMU *self, uint8_t num, bool enabled)
 {
 	if (num > 3)
 		return;
@@ -387,7 +391,7 @@ void _setSlaveEnabled(MPU6050 *self, uint8_t num, bool enabled)
  * @see MPU6050_RA_I2C_MST_DELAY_CTRL
  * @see MPU6050_DELAYCTRL_I2C_SLV0_DLY_EN_BIT
  */
-void _setSlaveDelayEnabled(MPU6050 *self, uint8_t num, bool enabled)
+void _setSlaveDelayEnabled(IMU *self, uint8_t num, bool enabled)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_I2C_MST_DELAY_CTRL, num, enabled);
 }
@@ -398,7 +402,7 @@ void _setSlaveDelayEnabled(MPU6050 *self, uint8_t num, bool enabled)
  * @see MPU6050_RA_INT_CFG
  * @see MPU6050_INTERRUPT_DATA_RDY_BIT
  */
-void _setIntDataReadyEnabled(MPU6050 *self, bool enabled)
+void _setIntDataReadyEnabled(IMU *self, bool enabled)
 {
 	self->i2c->writeBit(self->i2c, self->devAddr, MPU6050_RA_INT_ENABLE, MPU6050_INTERRUPT_DATA_RDY_BIT, enabled);
 }
@@ -410,7 +414,7 @@ void _setIntDataReadyEnabled(MPU6050 *self, bool enabled)
  * @param string A pointer to a string describing the value.
  * @return True if self test within low - high limit, false otherwise
  */
-bool _evaluateSelfTest(MPU6050 *self, float low, float high, float value, char* string)
+bool _evaluateSelfTest(IMU *self, float low, float high, float value, char* string)
 {
 	if (value < low || value > high)
 	{
@@ -424,7 +428,7 @@ bool _evaluateSelfTest(MPU6050 *self, float low, float high, float value, char* 
 /** Do a MPU6050 self test.
  * @return True if self test passed, false otherwise
  */
-bool _selfTest(MPU6050 *self)
+bool _selfTest(IMU *self)
 {
 	uint8_t saveReg[5];
 	uint8_t selfTest[6];
@@ -579,7 +583,7 @@ bool _selfTest(MPU6050 *self)
 	}
 }
 
-void _calibrate(MPU6050 *self)
+void _calibrate(IMU *self)
 {
 	uint8_t data[12];
 	uint16_t ii, packet_count, fifo_count;
@@ -625,8 +629,8 @@ void _calibrate(MPU6050 *self)
 	self->setFullScaleGyroRange(self, MPU6050_GYRO_FS_250);//MPU6050_GYRO_FS_2000);
 	self->buffer[0] = MPU6050_RA_ACCEL_CONFIG ;	// Set accelerometer full-scale to 2 g, maximum sensitivity
 	self->buffer[1] = 0x00;
-	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-//	self->setFullScaleAccelRange(self, MPU6050_G_PER_LSB_2);
+//	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->setFullScaleAccelRange(self, MPU6050_ACCEL_FS_2);
 
 	uint16_t  gyrosensitivity  = 131;   // = 131 LSB/degrees/sec
 	uint16_t  accelsensitivity = 16384;  // = 16384 LSB/g
@@ -653,15 +657,17 @@ void _calibrate(MPU6050 *self)
 	{
 		int16_t accel_temp[3] = {0, 0, 0}, gyro_temp[3] = {0, 0, 0};
 		self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_FIFO_R_W, &data[0], 12);
+
 		accel_temp[0] = (int16_t) (((int16_t)data[0] << 8) | data[1]  ) ;  // Form signed 16-bit integer for each sample in FIFO
 		accel_temp[1] = (int16_t) (((int16_t)data[2] << 8) | data[3]  ) ;
 		accel_temp[2] = (int16_t) (((int16_t)data[4] << 8) | data[5]  ) ;
 		gyro_temp[0]  = (int16_t) (((int16_t)data[6] << 8) | data[7]  ) ;
 		gyro_temp[1]  = (int16_t) (((int16_t)data[8] << 8) | data[9]  ) ;
 		gyro_temp[2]  = (int16_t) (((int16_t)data[10] << 8) | data[11]) ;
-		printf("a: %d, %d, %d, g: %d, %d, %d\n",
+		printf("(%d) a: %d, %d, %d, g: %d, %d, %d\n", ii,
 				accel_temp[0], accel_temp[1], accel_temp[2], gyro_temp[0], gyro_temp[1], gyro_temp[2]);
 
+		if (ii < 20) continue;
 		accel_bias[0] += (int32_t) accel_temp[0]; // Sum individual signed 16-bit biases to get accumulated signed 32-bit biases
 		accel_bias[1] += (int32_t) accel_temp[1];
 		accel_bias[2] += (int32_t) accel_temp[2];
@@ -673,27 +679,27 @@ void _calibrate(MPU6050 *self)
 	printf("bias a: %d, %d, %d, g: %d, %d, %d\n",
 			accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
-	accel_bias[0] /= (int32_t) packet_count; // Normalize sums to get average count biases
-	accel_bias[1] /= (int32_t) packet_count;
-	accel_bias[2] /= (int32_t) packet_count;
-	gyro_bias[0]  /= (int32_t) packet_count;
-	gyro_bias[1]  /= (int32_t) packet_count;
-	gyro_bias[2]  /= (int32_t) packet_count;
+	accel_bias[0] /= (int32_t) (packet_count-20); // Normalize sums to get average count biases
+	accel_bias[1] /= (int32_t) (packet_count-20);
+	accel_bias[2] /= (int32_t) (packet_count-20);
+	gyro_bias[0]  /= (int32_t) (packet_count-20);
+	gyro_bias[1]  /= (int32_t) (packet_count-20);
+	gyro_bias[2]  /= (int32_t) (packet_count-20);
 
 	printf("bias avg a: %d, %d, %d, g: %d, %d, %d\n",
 				accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
-//	gyro_bias[0] = -114;
-//	gyro_bias[1] = -90;
-//	gyro_bias[2] = 0;
+//	gyro_bias[0] = -300;//-114;
+//	gyro_bias[1] = -104;//-90;
+	gyro_bias[2] = 16;//0;
 
-	accel_bias[0] = 192;//224;//-256;
-	accel_bias[1] = 387;//422;//131;
+//	accel_bias[0] = 395;//192;//224;//-256;
+//	accel_bias[1] = 387;//422;//131;
 
 	if(accel_bias[2] > 0L) {accel_bias[2] -= (int32_t) accelsensitivity;}  // Remove gravity from the z-axis accelerometer bias calculation
 	else {accel_bias[2] += (int32_t) accelsensitivity;}
 
-	accel_bias[2] = -208;//-180;//-178;//-49;
+//	accel_bias[2] = -1500;//-208;//-180;//-178;//-49;
 	printf("bias avg 2 a: %d, %d, %d, g: %d, %d, %d\n",
 					accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
@@ -727,12 +733,21 @@ void _calibrate(MPU6050 *self)
 //	printf("gyro bias: %d, %d, %d\n", (data[0]<<8)+data[1], (data[2]<<8)+data[3], (data[4]<<8)+data[5]);
 
 	int32_t accel_bias_reg[3] = {0, 0, 0}; // A place to hold the factory accelerometer trim biases
+#if IMU_TYPE == MPU6050
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_XA_OFFS_H, &data[0], 2);
+	accel_bias_reg[0] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_YA_OFFS_H, &data[0], 2);
+	accel_bias_reg[1] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ZA_OFFS_H, &data[0], 2);
+	accel_bias_reg[2] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+#elif IMU_TYPE == MPU9250
 	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_XA_OFFSET_H, &data[0], 2);
 	accel_bias_reg[0] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
 	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_YA_OFFSET_H, &data[0], 2);
 	accel_bias_reg[1] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
 	self->i2c->read(self->i2c, self->devAddr, MPU6050_RA_ZA_OFFSET_H, &data[0], 2);
 	accel_bias_reg[2] = (int32_t) (((int16_t)data[0] << 8) | data[1]);
+#endif
 
 	uint32_t mask = 1uL; // Define mask for temperature compensation bit 0 of lower byte of accelerometer bias registers
 	uint8_t mask_bit[3] = {0, 0, 0}; // Define array to hold mask bit for each accelerometer bias axis
@@ -759,7 +774,26 @@ void _calibrate(MPU6050 *self)
 	data[5] = (accel_bias_reg[2])      & 0xFF;
 	data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
 
-
+#if IMU_TYPE == MPU6050
+	self->buffer[0] = MPU6050_RA_XA_OFFS_H;//MPU6050_RA_XA_OFFSET_H ;
+	self->buffer[1] = data[0];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_XA_OFFS_L_TC;//MPU6050_RA_XA_OFFSET_L ;
+	self->buffer[1] = data[1];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_YA_OFFS_H;//MPU6050_RA_YA_OFFSET_H ;
+	self->buffer[1] = data[2];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_YA_OFFS_L_TC;//MPU6050_RA_YA_OFFSET_L ;
+	self->buffer[1] = data[3];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ZA_OFFS_H;//MPU6050_RA_ZA_OFFSET_H ;
+	self->buffer[1] = data[4];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+	self->buffer[0] = MPU6050_RA_ZA_OFFS_L_TC;//MPU6050_RA_ZA_OFFSET_L ;
+	self->buffer[1] = data[5];
+	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
+#elif IMU_TYPE == MPU9250
 	self->buffer[0] = MPU6050_RA_XA_OFFSET_H ;
 	self->buffer[1] = data[0];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
@@ -772,7 +806,6 @@ void _calibrate(MPU6050 *self)
 	self->buffer[0] = MPU6050_RA_YA_OFFSET_L ;
 	self->buffer[1] = data[3];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-#if 1
 	self->buffer[0] = MPU6050_RA_ZA_OFFSET_H ;
 	self->buffer[1] = data[4];
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);

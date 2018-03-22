@@ -1,9 +1,9 @@
 #include <math.h>
 #include "sensor.h"
 #include "imu_types.h"
-#include "mpu6050.h"
 #include "ak8963.h"
 #include "config.h"
+#include "imu.h"
 #include "led.h"
 #include "kalman.h"
 #include "utility.h"
@@ -44,7 +44,7 @@ bool gyroBiasFound = false;
 bool isMpu6500TestPassed = false;
 bool  isAK8963TestPassed = false;
 
-MPU6050 imu;
+IMU imu;
 AK8963 mag;
 BiasObj gyroBiasRunning;
 Axis3f  gyroBias;
@@ -65,19 +65,14 @@ void processBarometerMeasurements(const uint8_t *buffer);
 void sensorsBiasObjInit(BiasObj* bias);
 void SensorTask_Init();
 void sensorsSetupSlaveRead(void);
+bool sensorsTest();
 
-void IRAM_ATTR mpu6050_isr_handler(void* arg)
+void IRAM_ATTR imu_isr_handler(void* arg)
 {
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	xSemaphoreGiveFromISR(sensorsDataReady, &xHigherPriorityTaskWoken);
 
 	portYIELD_FROM_ISR();
-#if 0
-	if (xHigherPriorityTaskWoken)
-	{
-		portYIELD();
-	}
-#endif
 }
 
 void Sensor_Init(Bus *bus)
@@ -87,18 +82,18 @@ void Sensor_Init(Bus *bus)
 
 	sensorsDataReady = xSemaphoreCreateBinary();
 	io_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
-	io_conf.pin_bit_mask = (1ULL<<PIN_MPU6050_INT);;
+	io_conf.pin_bit_mask = (1ULL<<PIN_IMU_INT);;
 	io_conf.mode = GPIO_MODE_INPUT;
 	io_conf.pull_up_en = 1;
 	gpio_config(&io_conf);
 	gpio_install_isr_service(0);
-	gpio_isr_handler_add(PIN_MPU6050_INT, mpu6050_isr_handler, (void*) PIN_MPU6050_INT);
+	gpio_isr_handler_add(PIN_IMU_INT, imu_isr_handler, (void*) PIN_IMU_INT);
 
 	sensorsBiasObjInit(&gyroBiasRunning);
 	imu.i2c = &bus->i2c;
 	mag.i2c = &bus->i2c;
 
-	MPU6050_Init(&imu, MPU6050_ADDRESS);
+	IMU_Init(&imu, MPU6050_ADDRESS);
 
 	while (!imu.testConnection(&imu))
 	{
@@ -106,10 +101,10 @@ void Sensor_Init(Bus *bus)
 		if (try_cnt == 0)
 		{
 			LED_ON(PIN_LED_YELLOW);
-			printf("MPU9250 I2C connection [FAIL].\n");
+			printf("IMU I2C connection [FAIL].\n");
 			return;
 		}
-		printf("MPU6050 retry\n");
+		printf("IMU retry\n");
 		vTaskDelay(M2T(100));
 	}
 
@@ -167,12 +162,16 @@ void Sensor_Init(Bus *bus)
 	imu.readAllRaw(&imu, buffer, BUF_LEN);
 	processAccGyroMeasurements(&(buffer[0]));
 
+#ifdef KALMAN
 	float roll = atan2(sensors.acc.y, sensors.acc.z) * RAD_TO_DEG;
 	float pitch = atan(-sensors.acc.x/sqrt(sensors.acc.y*sensors.acc.y+sensors.acc.z*sensors.acc.z)) * RAD_TO_DEG;
 	Kalman_Init(&kalRoll);
 	Kalman_Init(&kalPitch);
 	kalRoll.setAngle(&kalRoll, roll);
 	kalPitch.setAngle(&kalPitch, pitch);
+#endif
+
+//	sensorsTest();
 	SensorTask_Init();
 }
 
@@ -463,21 +462,17 @@ bool sensorsTest()
 	}
 	testStatus &= isMpu6500TestPassed;
 
+	status = (testStatus << STATUS_IMU);
+
 	printf("test status: %d\n", testStatus);
+#ifdef AK8963
 	if (testStatus)
 	{
 		isAK8963TestPassed = mag.SelfTest(&mag);
 		testStatus = isAK8963TestPassed;
 	}
-
-#ifdef SENSORS_ENABLE_PRESSURE_LPS25H
-	testStatus &= isBarometerPresent;
-	if (testStatus)
-	{
-		isLPS25HTestPassed = lps25hSelfTest();
-		testStatus = isLPS25HTestPassed;
-	}
 #endif
+
 	return testStatus;
 }
 

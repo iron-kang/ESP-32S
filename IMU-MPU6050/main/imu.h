@@ -1,5 +1,5 @@
-#ifndef _MPU6050_H_
-#define _MPU6050_H_
+#ifndef _IMU_H_
+#define _IMU_H_
 
 #include "common.h"
 #include "esp_err.h"
@@ -421,7 +421,7 @@
 
 #define BUF_LEN (14 + 8 + 6*0)
 
-typedef struct mpu6050 
+typedef struct imu
 {
     I2C_CONFIG *i2c;
     uint8_t devAddr;
@@ -433,43 +433,43 @@ typedef struct mpu6050
     int16_t gz;
     uint8_t buffer[14];
 
-    void (*setRate)(struct mpu6050 *self, uint8_t rate);
-    void (*setAccelDLPF)(struct mpu6050 *self, uint8_t range);
-    void (*setTempSensorEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setIntEnabled)(struct mpu6050 *self, uint8_t enabled);
-    void (*setClockSource)(struct mpu6050 *self, uint8_t source);
-    void (*setFullScaleGyroRange)(struct mpu6050 *self, uint8_t range);
-    void (*setFullScaleAccelRange)(struct mpu6050 *self, uint8_t range);
-    void (*setSleepEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setI2CBypassEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setI2CMasterModeEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setDLPFMode)(struct mpu6050 *self, uint8_t mode);
-    void (*getMotion)(struct mpu6050 *self);
-    void (*reset)(struct mpu6050 *self);
-    void (*readAllRaw)(struct mpu6050 *self, uint8_t *buffer, uint8_t len);
-    float (*getFullScaleAccelGPL)(struct mpu6050 *self);
-    uint8_t (*getFullScaleAccelRangeId)(struct mpu6050 *self);
-    bool (*testConnection)(struct mpu6050 *self);
-    void (*setSlave4MasterDelay)(struct mpu6050 *self, uint8_t delay);
-    void (*setWaitForExternalSensorEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setInterruptMode)(struct mpu6050 *self, bool mode);
-    void (*setInterruptDrive)(struct mpu6050 *self, bool drive);
-    void (*setInterruptLatch)(struct mpu6050 *self, bool latch);
-    void (*setInterruptLatchClear)(struct mpu6050 *self, bool clear);
-    void (*setSlaveReadWriteTransitionEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setMasterClockSpeed)(struct mpu6050 *self, uint8_t speed);
-    void (*setSlaveAddress)(struct mpu6050 *self, uint8_t num, uint8_t address);
-    void (*setSlaveRegister)(struct mpu6050 *self, uint8_t num, uint8_t reg);
-    void (*setSlaveDataLength)(struct mpu6050 *self, uint8_t num, uint8_t length);
-    void (*setSlaveDelayEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
-    void (*setIntDataReadyEnabled)(struct mpu6050 *self, bool enabled);
-    void (*setSlaveEnabled)(struct mpu6050 *self, uint8_t num, bool enabled);
-    bool (*selfTest)(struct mpu6050 *self);
-    bool (*evaluateSelfTest)(struct mpu6050 *self, float low, float high, float value, char* string);
-    void (*calibrate)(struct mpu6050 *self);
+    void (*setRate)(struct imu *self, uint8_t rate);
+    void (*setAccelDLPF)(struct imu *self, uint8_t range);
+    void (*setTempSensorEnabled)(struct imu *self, bool enabled);
+    void (*setIntEnabled)(struct imu *self, uint8_t enabled);
+    void (*setClockSource)(struct imu *self, uint8_t source);
+    void (*setFullScaleGyroRange)(struct imu *self, uint8_t range);
+    void (*setFullScaleAccelRange)(struct imu *self, uint8_t range);
+    void (*setSleepEnabled)(struct imu *self, bool enabled);
+    void (*setI2CBypassEnabled)(struct imu *self, bool enabled);
+    void (*setI2CMasterModeEnabled)(struct imu *self, bool enabled);
+    void (*setDLPFMode)(struct imu *self, uint8_t mode);
+    void (*getMotion)(struct imu *self);
+    void (*reset)(struct imu *self);
+    void (*readAllRaw)(struct imu *self, uint8_t *buffer, uint8_t len);
+    float (*getFullScaleAccelGPL)(struct imu *self);
+    uint8_t (*getFullScaleAccelRangeId)(struct imu *self);
+    bool (*testConnection)(struct imu *self);
+    void (*setSlave4MasterDelay)(struct imu *self, uint8_t delay);
+    void (*setWaitForExternalSensorEnabled)(struct imu *self, bool enabled);
+    void (*setInterruptMode)(struct imu *self, bool mode);
+    void (*setInterruptDrive)(struct imu *self, bool drive);
+    void (*setInterruptLatch)(struct imu *self, bool latch);
+    void (*setInterruptLatchClear)(struct imu *self, bool clear);
+    void (*setSlaveReadWriteTransitionEnabled)(struct imu *self, bool enabled);
+    void (*setMasterClockSpeed)(struct imu *self, uint8_t speed);
+    void (*setSlaveAddress)(struct imu *self, uint8_t num, uint8_t address);
+    void (*setSlaveRegister)(struct imu *self, uint8_t num, uint8_t reg);
+    void (*setSlaveDataLength)(struct imu *self, uint8_t num, uint8_t length);
+    void (*setSlaveDelayEnabled)(struct imu *self, uint8_t num, bool enabled);
+    void (*setIntDataReadyEnabled)(struct imu *self, bool enabled);
+    void (*setSlaveEnabled)(struct imu *self, uint8_t num, bool enabled);
+    bool (*selfTest)(struct imu *self);
+    bool (*evaluateSelfTest)(struct imu *self, float low, float high, float value, char* string);
+    void (*calibrate)(struct imu *self);
 
-} MPU6050;
+} IMU;
 
-void MPU6050_Init(MPU6050 *mpu, uint8_t addr);
+void IMU_Init(IMU *mpu, uint8_t addr);
 
 #endif

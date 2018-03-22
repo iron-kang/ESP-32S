@@ -142,6 +142,7 @@ void action_getInfo(char *buf_in, TaskPara *para)
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
 	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
 	System_GetBatVal(&data.bat);
+	data.status = status;
 	para->buf_out[0] = 'A';
 	memcpy(&para->buf_out[1], &data, sizeof(data));
 

@@ -13,4 +13,11 @@
 #include "config.h"
 #include "esp_log.h"
 
+enum {
+	STATUS_BAT = 0,
+	STATUS_IMU,
+}status_t;
+
+uint8_t status;
+
 #endif /* MAIN_COMMON_H_ */

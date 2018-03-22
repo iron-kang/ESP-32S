@@ -20,6 +20,7 @@ typedef struct _info {
 	AXIS attitude;
 	float thrust[4];
 	float bat;
+	uint8_t status;
 }Info;
 
 float invSqrt(float x);

@@ -42,7 +42,7 @@ void system_task(void *pvParameters)
 		if (cnt == 0)
 		{
 			voltage = esp_adc_cal_raw_to_voltage(avg/SAMPLE_NUM, adc_chars);
-			printf("bat vol: %d\n", voltage);
+//			printf("bat vol: %d\n", voltage);
 			xQueueOverwrite(batDataQueue, &voltage);
 		}
 		vTaskDelayUntil(&lastWakeTime, 400);
