@@ -3,6 +3,9 @@
 #include "common.h"
 #include "nvs_flash.h"
 #include "nvs.h"
+#include "freertos/queue.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #define NVS_KEY_ROLL_RATE_KP  "roll-rate-kp"
 #define NVS_KEY_ROLL_RATE_KI  "roll-rate-ki"
@@ -86,7 +89,9 @@ float pid_para[PID_NUM] = {
 	KD_YAW_RATE,
 };
 
+xQueueHandle attitudeQueue;
 nvs_handle nvs;
+attitude_t attitude_old, attitude_desired;
 const float SCALE = 1000.0;
 
 void Controller_Init()
@@ -125,11 +130,18 @@ void Controller_Init()
 	PID_Init(&pidPitch, pid_para[PID_PITCH_KP], pid_para[PID_PITCH_KI], pid_para[PID_PITCH_KD], DT);
 	PID_Init(&pidYaw,   pid_para[PID_YAW_KP],   pid_para[PID_YAW_KI],   pid_para[PID_YAW_KD], DT);
 
+	attitudeQueue = xQueueCreate(1, sizeof(attitude_t));
+
 }
 
 float *Controller_GetPID()
 {
 	return pid_para;
+}
+
+void Controller_SetAttitude(attitude_t *attitude)
+{
+	xQueueOverwrite(attitudeQueue, attitude);
 }
 
 void Controller_SetPID(PidParam pid_atti, PidParam pid_rate)
@@ -168,9 +180,14 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 	{
 		if (motor_LF.thrust_base < 57) return;
 
-		rateDesired.roll  = PID_Exe(&pidRoll, target.roll - state->attitude.roll);
-		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch - state->attitude.pitch);
-		error = target.yaw - state->attitude.yaw;
+		if (xQueueReceive(attitudeQueue, &attitude_desired, 0))
+			attitude_old = attitude_desired;
+		else
+			attitude_desired = attitude_old;
+
+		rateDesired.roll  = PID_Exe(&pidRoll, target.roll*0 + attitude_desired.roll - state->attitude.roll);
+		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch*0 + attitude_desired.pitch - state->attitude.pitch);
+		error = target.yaw*0 + attitude_desired.yaw - state->attitude.yaw;
 		if (error > 180.0)
 			error -= 360.0;
 		  else if (error < -180.0)

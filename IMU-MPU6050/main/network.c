@@ -34,6 +34,7 @@ state_t *state;
 Info data;
 PidParam pid_attitude;
 PidParam pid_rate;
+attitude_t attitude_desired;
 Action actions[] = {
 	{action_getInfo,   'A'},
 	{action_getPID,    'a'},
@@ -176,8 +177,34 @@ void action_thrust(char *buf_in, TaskPara *para)
 
 void action_direction(char *buf_in, TaskPara *para)
 {
+	if (buf_in[2] == 'b')
+	{
+		switch (buf_in[3])
+		{
+		case 'r:':
+			attitude_desired.roll = 30;
+			break;
+		case 'l':
+			attitude_desired.roll = -30;
+			break;
+		case 's':
+			attitude_desired.roll = 0;
+			break;
+		case 'f':
+			attitude_desired.pitch = -30;
+			break;
+		case 'b':
+			attitude_desired.pitch = 30;
+			break;
+		case 'S':
+			attitude_desired.pitch = 0;
+			break;
+		}
+	}
 
+	printf("cmd: %c\n", buf_in[3]);
 }
+
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
