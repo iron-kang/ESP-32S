@@ -39,9 +39,12 @@ static void IRAM_ATTR ultrasonic_isr_handler(void* arg)
 static void ultrasonic_task_example(void* arg)
 {
     uint64_t time_escape;
+    float distance;
     for(;;) {
-        if(xQueueReceive(gpio_evt_queue, &time_escape, portMAX_DELAY*0)) {
-            printf("Time escape  : %.8f s\n", (double) time_escape / TIMER_SCALE);
+        if(xQueueReceive(gpio_evt_queue, &time_escape, portMAX_DELAY)) {
+            //printf("Time escape  : %.8f s\n", (double) time_escape / TIMER_SCALE);
+            distance = time_escape * 1000000.0 / TIMER_SCALE / 2 /29;
+            printf("distance: %f\n", distance);
         }
     }
 }
