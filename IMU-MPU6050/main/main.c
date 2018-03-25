@@ -16,29 +16,20 @@
 #include "system.h"
 
 Bus bus;
+uint8_t system_state = 0;
 
 void init()
 {
-	bool pass = true;
-
 	LED_Init();
     Bus_Init(&bus);
-    Sensor_Init(&bus);
-
+    Sensor_Init(&bus, &system_state);
 //    MQTT_Init();
     Motor_Init();
-
-//    pass &= stabilizerTest();
-//
-//    if (pass)
-//    	printf("system OK\n");
-
     Stabilizer();
-    Network_Init();
+    Network_Init(&system_state);
     System_Init();
-
 }
-
+#if 0
 void mqtt_task(void *pvParameters)
 {
 	state_t *state;
@@ -56,11 +47,10 @@ void mqtt_task(void *pvParameters)
 		vTaskDelayUntil(&lastWakeTime, 1000);
 	}
 }
-
+#endif
 void app_main()
 {
     init();
-
 //    xTaskCreate(&mqtt_task, "mqtt_task", 8192, NULL, 3, NULL);
 
 }

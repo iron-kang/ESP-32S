@@ -7,6 +7,8 @@
 #include "led.h"
 #include "kalman.h"
 #include "utility.h"
+#include "gps.h"
+#include "driver/uart.h"
 
 #define SENSORS_TASK_NAME           "SENSORS"
 #define MAG_GAUSS_PER_LSB           666.7f
@@ -39,12 +41,14 @@ xQueueHandle accelerometerDataQueue;
 xQueueHandle gyroDataQueue;
 xQueueHandle magnetometerDataQueue;
 xQueueHandle barometerDataQueue;
+xQueueHandle gpsDataQueue;
 xSemaphoreHandle sensorsDataReady;
 bool gyroBiasFound = false;
 bool isMpu6500TestPassed = false;
 bool  isAK8963TestPassed = false;
 
 IMU imu;
+GPS gps;
 AK8963 mag;
 BiasObj gyroBiasRunning;
 Axis3f  gyroBias;
@@ -75,7 +79,7 @@ void IRAM_ATTR imu_isr_handler(void* arg)
 	portYIELD_FROM_ISR();
 }
 
-void Sensor_Init(Bus *bus)
+void Sensor_Init(Bus *bus, uint8_t *status)
 {
 	gpio_config_t io_conf;
 	uint8_t try_cnt = 10;
@@ -171,7 +175,11 @@ void Sensor_Init(Bus *bus)
 	kalPitch.setAngle(&kalPitch, pitch);
 #endif
 
-//	sensorsTest();
+
+	*status |= (!sensorsTest() << STATUS_IMU);
+
+	GPS_Init(&gps);
+
 	SensorTask_Init();
 }
 
@@ -360,9 +368,9 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 
 //	gx = abs(gx) > 8 ? gx : 0;
 //	gy = abs(gy) > 8 ? gy : 0;
-	gz = abs(gz) > 8 ? gz : 0;
+//	gz = abs(gz) > 8 ? gz : 0;
 
-//	printf("a(%d, %d, %d), g(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
+//	printf("a(%d, %d, %d),\tg(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias) | true;
 
@@ -443,6 +451,11 @@ bool sensorsReadMag(Axis3f *mag)
   return (pdTRUE == xQueueReceive(magnetometerDataQueue, mag, 0));
 }
 
+bool sensorsReadGPS(GPS_Data *gps)
+{
+	return (pdTRUE == xQueueReceive(gpsDataQueue, gps, 0));
+}
+
 bool sensorsTest()
 {
 	bool testStatus = true;
@@ -462,8 +475,6 @@ bool sensorsTest()
 	}
 	testStatus &= isMpu6500TestPassed;
 
-	status = (testStatus << STATUS_IMU);
-
 	printf("test status: %d\n", testStatus);
 #ifdef AK8963
 	if (testStatus)
@@ -481,6 +492,7 @@ void sensorsAcquire(sensorData_t *sensors, const uint32_t tick)
 	sensorsReadGyro(&sensors->gyro);
 	sensorsReadAcc(&sensors->acc);
 	sensorsReadMag(&sensors->mag);
+	sensorsReadGPS(&sensors->gps);
 //	sensorsReadBaro(&sensors->baro);
 }
 
@@ -531,6 +543,7 @@ void sensorsKalman(sensorData_t *sensors, attitude_t *attitude, float dt)
 
 void sensorsTask(void *param)
 {
+
 	while (true)
 	{
 		if (pdTRUE == xSemaphoreTake(sensorsDataReady, portMAX_DELAY))
@@ -547,15 +560,22 @@ void sensorsTask(void *param)
 			xTaskResumeAll();
 
 		}
+
+		if (gps.parse(&gps))
+		{
+			xQueueOverwrite(gpsDataQueue, &gps.data);
+		}
+
 	}
 }
 
 void SensorTask_Init()
 {
 	accelerometerDataQueue = xQueueCreate(1, sizeof(Axis3f));
-	gyroDataQueue = xQueueCreate(1, sizeof(Axis3f));
-	magnetometerDataQueue = xQueueCreate(1, sizeof(Axis3f));
-	barometerDataQueue = xQueueCreate(1, sizeof(baro_t));
+	gyroDataQueue          = xQueueCreate(1, sizeof(Axis3f));
+	magnetometerDataQueue  = xQueueCreate(1, sizeof(Axis3f));
+	barometerDataQueue     = xQueueCreate(1, sizeof(baro_t));
+	gpsDataQueue           = xQueueCreate(1, sizeof(GPS_Data));
 
 	xTaskCreate(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL);
 //	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);

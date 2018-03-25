@@ -16,13 +16,6 @@
 #define isnan(n) ((n != n) ? 1 : 0)
 
 
-typedef struct _info {
-	AXIS attitude;
-	float thrust[4];
-	float bat;
-	uint8_t status;
-}Info;
-
 float invSqrt(float x);
 uint16_t single2half(float number);
 float half2single(uint16_t number);

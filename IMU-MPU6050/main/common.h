@@ -16,8 +16,7 @@
 enum {
 	STATUS_BAT = 0,
 	STATUS_IMU,
+	STATUS_GPS
 }status_t;
-
-uint8_t status;
 
 #endif /* MAIN_COMMON_H_ */

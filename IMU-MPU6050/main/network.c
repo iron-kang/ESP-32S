@@ -30,6 +30,7 @@ void action_stop(char *buf_in, TaskPara *para);
 void action_startup(char *buf_in, TaskPara *para);
 
 uint8_t connect_num = 0;
+uint8_t *system_status = NULL;
 state_t *state;
 Info data;
 PidParam pid_attitude;
@@ -132,22 +133,23 @@ void action_getPID(char *buf_in, TaskPara *para)
 void action_getInfo(char *buf_in, TaskPara *para)
 {
 //	memset(para->buf_out, '0', 100);
-	state = stablizer_GetState();
-
-	data.attitude.x = state->attitude.roll;
-	data.attitude.y = state->attitude.pitch;
-	data.attitude.z = state->attitude.yaw;
+	stablizer_GetState(&data);
+//	state = stablizer_GetState();
+//
+//	data.attitude.x = state->attitude.roll;
+//	data.attitude.y = state->attitude.pitch;
+//	data.attitude.z = state->attitude.yaw;
 
 	data.thrust[LEFT_FORWARD]  = motor_LF.thrust;
 	data.thrust[LEFT_BACK]     = motor_LB.thrust;
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
 	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
 	System_GetBatVal(&data.bat);
-	data.status = status;
+	data.status = *system_status;
 	para->buf_out[0] = 'A';
 	memcpy(&para->buf_out[1], &data, sizeof(data));
 
-//	printf("bat: %f\n", data.bat);
+	printf("status: %d\n", *system_status);
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 
@@ -181,7 +183,7 @@ void action_direction(char *buf_in, TaskPara *para)
 	{
 		switch (buf_in[3])
 		{
-		case 'r:':
+		case 'r':
 			attitude_desired.roll = 30;
 			break;
 		case 'l':
@@ -288,9 +290,9 @@ void server_task(void *pvParameters)
 }
 
 
-void Network_Init()
+void Network_Init(uint8_t *status)
 {
-//	nvs_flash_init();
+	system_status = status;
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));

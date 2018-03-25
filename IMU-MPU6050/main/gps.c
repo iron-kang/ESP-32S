@@ -5,9 +5,9 @@
 #include "driver/uart.h" 
 #include "config.h"
 
-bool _parse(GPS_M8N *self);
+bool _parse(GPS *self);
 
-void GPS_init(GPS_M8N *gps)
+void GPS_Init(GPS *gps)
 {
     uart_config_t uart_config = {                                          
         .baud_rate = GPS_UART_BAUD,
@@ -29,7 +29,7 @@ void GPS_init(GPS_M8N *gps)
     gps->parse = _parse;
 }
 
-bool _parse(GPS_M8N *self)
+bool _parse(GPS *self)
 {
     char *pos_N, *pos_E;
     uint8_t tmp;
@@ -47,21 +47,21 @@ bool _parse(GPS_M8N *self)
     if (strncmp(self->str, "$GNGLL", 6))
        return false;
 
-    //printf("%s\n", str);
+//    printf("%s\n", self->str);
     pos_N = strrchr(self->str, 'N');
     if (pos_N == NULL || (pos_N-self->str) < 8) return false;
 
     tmp = pos_N - self->str;
     strncpy(substr, &self->str[7], tmp-1-7);
     //printf("N: %s\n", substr);
-    self->latitude = atof(substr);
+    self->data.latitude = atof(substr);
     pos_E = strrchr(self->str, 'E');
     if (pos_E == NULL) return false;
     memset(substr, 0, 20);
     strncpy(substr, &self->str[tmp+2], pos_E-tmp-3-self->str);
     //printf("E: %s\n", substr);
     //printf("posN: %d\n", pos_N - str);
-    self->longitude = atof(substr);
+    self->data.longitude = atof(substr);
 
     return true;
 }

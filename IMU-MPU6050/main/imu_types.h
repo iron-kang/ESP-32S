@@ -54,6 +54,20 @@
 	 KP = 0,
 	 KI,
 	 KD
- }PID_ID;
+ } PID_ID;
+
+ typedef struct _gps_data {
+	 float latitude;
+	 float longitude;
+	 float altitude;
+ } GPS_Data;
+
+ typedef struct _info {
+ 	AXIS attitude;
+ 	GPS_Data gps;
+ 	float thrust[4];
+ 	float bat;
+ 	uint8_t status;
+ }Info;
 
 #endif /* IMU_TYPES_H_ */

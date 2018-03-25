@@ -3,15 +3,16 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "imu_types.h"
 
 typedef struct gps {
 	char str[128];
-    float latitude, longitude, altitude;
+	GPS_Data data;
 
     bool (*parse)(struct gps *self);
 
-} GPS_M8N;
+} GPS;
 
-void GPS_init(GPS_M8N *gps);
+void GPS_Init(GPS *gps);
 
 #endif 

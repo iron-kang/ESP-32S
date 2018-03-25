@@ -8,6 +8,7 @@
 
 #define STABILIZER_TASK_NAME    "STABILIZER"
 
+xQueueHandle infoQueue;
 sensorData_t sensorData;
 setpoint_t setpoint;
 control_t control;
@@ -19,6 +20,7 @@ void stabilizerTask(void* param);
 void Stabilizer()
 {
 	Controller_Init();
+	infoQueue = xQueueCreate(1, sizeof(Info));
 
 	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 8192, NULL, STABILIZER_TASK_PRI, NULL);
 //	xTaskCreatePinnedToCore(stabilizerTask, STABILIZER_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);
@@ -53,6 +55,7 @@ void stabilizerTask(void* param)
 {
 	uint32_t tick = 0;
 	uint32_t lastWakeTime;
+	Info info;
 //	vTaskSetApplicationTaskTag(0, (void*)TASK_STABILIZER_ID_NBR);
 
 	// Wait for sensors to be calibrated
@@ -62,7 +65,7 @@ void stabilizerTask(void* param)
 		vTaskDelayUntil(&lastWakeTime, 1);
 	}
 
-	while(1)
+	while (true)
 	{
 		vTaskDelayUntil(&lastWakeTime, 1);
 
@@ -72,6 +75,11 @@ void stabilizerTask(void* param)
 		sensorsAcquire(&sensorData, tick);
 		stateEstimator(&state, &sensorData, tick);
 //		sensorsKalman(&sensorData, &attitude, 0.001);
+		info.attitude.x = state.attitude.roll;
+		info.attitude.y = state.attitude.pitch;
+		info.attitude.z = state.attitude.yaw;
+		info.gps = sensorData.gps;
+		xQueueOverwrite(infoQueue, &info);
 		attitude_t target;
 		target.pitch = 0;
 		target.roll = 0;
@@ -82,9 +90,9 @@ void stabilizerTask(void* param)
 	}
 }
 
-state_t *stablizer_GetState()
+bool stablizer_GetState(Info *info)
 {
-	return &state;
+	return (pdTRUE == xQueueReceive(infoQueue, info, 0));
 }
 
 attitude_t *stablizer_GetAttitude()

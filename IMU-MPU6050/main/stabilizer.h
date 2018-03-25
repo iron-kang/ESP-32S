@@ -6,7 +6,7 @@
 
 void Stabilizer();
 bool stabilizerTest(void);
-state_t *stablizer_GetState();
+bool stablizer_GetState(Info *info);
 attitude_t *stablizer_GetAttitude();
 
 #endif

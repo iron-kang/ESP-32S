@@ -9,6 +9,6 @@ typedef struct _cmd {
 	char header;
 }Action;
 
-void Network_Init();
+void Network_Init(uint8_t *status);
 
 #endif

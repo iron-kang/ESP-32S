@@ -119,6 +119,7 @@ typedef struct sensorData_s {
   Axis3f mag;
   baro_t baro;
   point_t position;
+  GPS_Data gps;
 } sensorData_t;
 
 typedef struct state_s {
