@@ -13,6 +13,6 @@ typedef struct gps {
 
 } GPS;
 
-void GPS_Init(GPS *gps);
+void GPS_Init(GPS *gps, uint8_t *status);
 
 #endif 

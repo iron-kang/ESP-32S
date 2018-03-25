@@ -7,8 +7,9 @@
 
 bool _parse(GPS *self);
 
-void GPS_Init(GPS *gps)
+void GPS_Init(GPS *gps, uint8_t *status)
 {
+	uint8_t tmp;
     uart_config_t uart_config = {                                          
         .baud_rate = GPS_UART_BAUD,
         .data_bits = UART_DATA_8_BITS,
@@ -27,6 +28,9 @@ void GPS_Init(GPS *gps)
     uart_driver_install(GPS_UART_NUM, 1024 * 2, 0, 0, NULL, 0);
 
     gps->parse = _parse;
+
+    if (uart_read_bytes(GPS_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS))
+    	*status |= (1 << STATUS_GPS);
 }
 
 bool _parse(GPS *self)

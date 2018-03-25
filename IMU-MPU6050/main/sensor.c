@@ -178,7 +178,7 @@ void Sensor_Init(Bus *bus, uint8_t *status)
 
 	*status |= (!sensorsTest() << STATUS_IMU);
 
-	GPS_Init(&gps);
+	GPS_Init(&gps, status);
 
 	SensorTask_Init();
 }
