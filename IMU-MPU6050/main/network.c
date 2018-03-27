@@ -132,6 +132,7 @@ void action_getPID(char *buf_in, TaskPara *para)
 
 void action_getInfo(char *buf_in, TaskPara *para)
 {
+	static float bat;
 //	memset(para->buf_out, '0', 100);
 	stablizer_GetState(&data);
 //	state = stablizer_GetState();
@@ -144,12 +145,14 @@ void action_getInfo(char *buf_in, TaskPara *para)
 	data.thrust[LEFT_BACK]     = motor_LB.thrust;
 	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
 	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
-	System_GetBatVal(&data.bat);
+	System_GetBatVal(&bat);
+	data.bat = bat;
 	data.status = *system_status;
 	para->buf_out[0] = 'A';
 	memcpy(&para->buf_out[1], &data, sizeof(data));
 
-	printf("status: %d\n", *system_status);
+//	printf("status: %d\n", *system_status);
+//	printf("bat: %f\n", data.bat);
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 
@@ -184,26 +187,26 @@ void action_direction(char *buf_in, TaskPara *para)
 		switch (buf_in[3])
 		{
 		case 'r':
-			attitude_desired.roll = 30;
+			attitude_desired.roll = 13;
 			break;
 		case 'l':
-			attitude_desired.roll = -30;
+			attitude_desired.roll = -13;
 			break;
 		case 's':
 			attitude_desired.roll = 0;
 			break;
 		case 'f':
-			attitude_desired.pitch = -30;
+			attitude_desired.pitch = -13;
 			break;
 		case 'b':
-			attitude_desired.pitch = 30;
+			attitude_desired.pitch = 13;
 			break;
 		case 'S':
 			attitude_desired.pitch = 0;
 			break;
 		}
 	}
-
+	Controller_SetAttitude(&attitude_desired);
 	printf("cmd: %c\n", buf_in[3]);
 }
 

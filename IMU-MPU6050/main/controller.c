@@ -6,6 +6,7 @@
 #include "freertos/queue.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "led.h"
 
 #define NVS_KEY_ROLL_RATE_KP  "roll-rate-kp"
 #define NVS_KEY_ROLL_RATE_KI  "roll-rate-ki"
@@ -131,7 +132,11 @@ void Controller_Init()
 	PID_Init(&pidYaw,   pid_para[PID_YAW_KP],   pid_para[PID_YAW_KI],   pid_para[PID_YAW_KD], DT);
 
 	attitudeQueue = xQueueCreate(1, sizeof(attitude_t));
+	attitude_desired.pitch = 0;
+	attitude_desired.roll  = 0;
+	attitude_desired.yaw   = 0;
 
+	attitude_desired = attitude_old;
 }
 
 float *Controller_GetPID()
@@ -185,6 +190,8 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 		else
 			attitude_desired = attitude_old;
 
+//		LED_Toggle(PIN_LED_YELLOW);
+//		printf("D roll: %f, pitch: %f, yaw: %f\n", attitude_desired.roll, attitude_desired.pitch, attitude_desired.yaw);
 		rateDesired.roll  = PID_Exe(&pidRoll, target.roll*0 + attitude_desired.roll - state->attitude.roll);
 		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch*0 + attitude_desired.pitch - state->attitude.pitch);
 		error = target.yaw*0 + attitude_desired.yaw - state->attitude.yaw;

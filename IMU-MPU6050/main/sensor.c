@@ -368,9 +368,9 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 
 //	gx = abs(gx) > 8 ? gx : 0;
 //	gy = abs(gy) > 8 ? gy : 0;
-//	gz = abs(gz) > 8 ? gz : 0;
+	gz = abs(gz) > 8 ? gz : 0;
 
-//	printf("a(%d, %d, %d),\tg(%d, %d, %d)\n", ax, ay, az-2048, gx, gy, gz);
+//	printf("a(%6d, %6d, %6d), g(%3d, %3d, %3d)\n", ax, ay, az-2048, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias) | true;
 
@@ -560,11 +560,12 @@ void sensorsTask(void *param)
 			xTaskResumeAll();
 
 		}
-
+#if 0
 		if (gps.parse(&gps))
 		{
 			xQueueOverwrite(gpsDataQueue, &gps.data);
 		}
+#endif
 
 	}
 }

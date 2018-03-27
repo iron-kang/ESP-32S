@@ -102,19 +102,36 @@ void _d4(Motor *this)
 	this->update(this);
 }
 
-
+//#define DEBUG
 void _update(Motor *this)
 {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	this->thrust = this->thrust_base + this->thrust_extra;
-	if (this->thrust > 80 || this->thrust <42)
+	if (this->thrust > 70 || this->thrust <42)
 	{
-		this->thrust = this->thrust > 80 ? 80 : this->thrust;
+		this->thrust = this->thrust > 70 ? 70 : this->thrust;
 		this->thrust = this->thrust < 42 ? 42 : this->thrust;
 		xSemaphoreGive(this->mutex);
 		return;
 	}
-#if 1
+
+#ifdef DEBUG
+	switch (this->id)
+	{
+	case LEFT_FORWARD:
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 42);
+		break;
+	case LEFT_BACK:
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 42);
+		break;
+	case RIGHT_FORWARD:
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, 42);
+		break;
+	case RIGHT_BACK:
+		mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, 42);
+		break;
+	}
+#else
 	switch (this->id)
 	{
 	case LEFT_FORWARD:
