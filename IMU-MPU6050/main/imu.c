@@ -124,7 +124,7 @@ bool _testConnection(IMU *self)
 #endif
 
 #ifdef CONFIG_IMU_MPU9250
-	return data == 0x38;
+	return data == 0x39;//0x38;
 #endif
 }
 
@@ -595,7 +595,7 @@ void _calibrate(IMU *self)
 	self->buffer[0] = MPU6050_RA_PWR_MGMT_1 ;
 	self->buffer[1] = 0x80;
 	self->i2c->write(self->i2c, self->devAddr, self->buffer, 2);
-	vTaskDelay(100 / portTICK_PERIOD_MS);
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	// Configure device for bias calculation
 	self->buffer[0] = MPU6050_RA_INT_ENABLE ;	// Disable all interrupts
@@ -655,6 +655,8 @@ void _calibrate(IMU *self)
 	packet_count = fifo_count/12;// How many sets of full gyro and accelerometer data for averaging
 	printf("packet cnt: %d\n", packet_count);
 
+	uint8_t skip_cnt = 10;
+
 	for (ii = 0; ii < packet_count; ii++)
 	{
 		int16_t accel_temp[3] = {0, 0, 0}, gyro_temp[3] = {0, 0, 0};
@@ -669,7 +671,7 @@ void _calibrate(IMU *self)
 		printf("(%d) a: %d, %d, %d, g: %d, %d, %d\n", ii,
 				accel_temp[0], accel_temp[1], accel_temp[2], gyro_temp[0], gyro_temp[1], gyro_temp[2]);
 
-		if (ii < 20) continue;
+		if (ii < skip_cnt) continue;
 		accel_bias[0] += (int32_t) accel_temp[0]; // Sum individual signed 16-bit biases to get accumulated signed 32-bit biases
 		accel_bias[1] += (int32_t) accel_temp[1];
 		accel_bias[2] += (int32_t) accel_temp[2];
@@ -681,27 +683,27 @@ void _calibrate(IMU *self)
 	printf("bias a: %d, %d, %d, g: %d, %d, %d\n",
 			accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
-	accel_bias[0] /= (int32_t) (packet_count-20); // Normalize sums to get average count biases
-	accel_bias[1] /= (int32_t) (packet_count-20);
-	accel_bias[2] /= (int32_t) (packet_count-20);
-	gyro_bias[0]  /= (int32_t) (packet_count-20);
-	gyro_bias[1]  /= (int32_t) (packet_count-20);
-	gyro_bias[2]  /= (int32_t) (packet_count-20);
+	accel_bias[0] /= (int32_t) (packet_count-skip_cnt); // Normalize sums to get average count biases
+	accel_bias[1] /= (int32_t) (packet_count-skip_cnt);
+	accel_bias[2] /= (int32_t) (packet_count-skip_cnt);
+	gyro_bias[0]  /= (int32_t) (packet_count-skip_cnt);
+	gyro_bias[1]  /= (int32_t) (packet_count-skip_cnt);
+	gyro_bias[2]  /= (int32_t) (packet_count-skip_cnt);
 
 	printf("bias avg a: %d, %d, %d, g: %d, %d, %d\n",
 				accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
-//	gyro_bias[0] = -300;//-114;
-//	gyro_bias[1] = -104;//-90;
-//	gyro_bias[2] = 14;//0;
+	gyro_bias[0] = -10;//-300;//-114;
+	gyro_bias[1] = 164;//-104;//-90;
+	gyro_bias[2] = 170;//14;//0;
 
-	accel_bias[0] = -112;//-256;
-	accel_bias[1] = -176;//131;
+	accel_bias[0] = -128;
+	accel_bias[1] = 662;//631;
 
 	if(accel_bias[2] > 0L) {accel_bias[2] -= (int32_t) accelsensitivity;}  // Remove gravity from the z-axis accelerometer bias calculation
 	else {accel_bias[2] += (int32_t) accelsensitivity;}
 
-	accel_bias[2] = -65;//-49;
+	accel_bias[2] = -193;//-116;
 	printf("bias avg 2 a: %d, %d, %d, g: %d, %d, %d\n",
 					accel_bias[0], accel_bias[1], accel_bias[2], gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 

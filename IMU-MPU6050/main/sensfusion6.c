@@ -160,43 +160,43 @@ void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float
 	// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f)))
 	{
-	// Normalise accelerometer measurement
-	recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-	ax *= recipNorm;
-	ay *= recipNorm;
-	az *= recipNorm;
+		// Normalise accelerometer measurement
+		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+		ax *= recipNorm;
+		ay *= recipNorm;
+		az *= recipNorm;
 
-	// Estimated direction of gravity and vector perpendicular to magnetic flux
-	halfvx = q1 * q3 - q0 * q2;
-	halfvy = q0 * q1 + q2 * q3;
-	halfvz = q0 * q0 - 0.5f + q3 * q3;
+		// Estimated direction of gravity and vector perpendicular to magnetic flux
+		halfvx = q1 * q3 - q0 * q2;
+		halfvy = q0 * q1 + q2 * q3;
+		halfvz = q0 * q0 - 0.5f + q3 * q3;
 
-	// Error is sum of cross product between estimated and measured direction of gravity
-	halfex = (ay * halfvz - az * halfvy);
-	halfey = (az * halfvx - ax * halfvz);
-	halfez = (ax * halfvy - ay * halfvx);
+		// Error is sum of cross product between estimated and measured direction of gravity
+		halfex = (ay * halfvz - az * halfvy);
+		halfey = (az * halfvx - ax * halfvz);
+		halfez = (ax * halfvy - ay * halfvx);
 
-	// Compute and apply integral feedback if enabled
-	if(twoKi > 0.0f)
-	{
-	  integralFBx += twoKi * halfex * dt;  // integral error scaled by Ki
-	  integralFBy += twoKi * halfey * dt;
-	  integralFBz += twoKi * halfez * dt;
-	  gx += integralFBx;  // apply integral feedback
-	  gy += integralFBy;
-	  gz += integralFBz;
-	}
-	else
-	{
-	  integralFBx = 0.0f; // prevent integral windup
-	  integralFBy = 0.0f;
-	  integralFBz = 0.0f;
-	}
+		// Compute and apply integral feedback if enabled
+		if(twoKi > 0.0f)
+		{
+			integralFBx += twoKi * halfex * dt;  // integral error scaled by Ki
+			integralFBy += twoKi * halfey * dt;
+			integralFBz += twoKi * halfez * dt;
+			gx += integralFBx;  // apply integral feedback
+			gy += integralFBy;
+			gz += integralFBz;
+		}
+		else
+		{
+			integralFBx = 0.0f; // prevent integral windup
+			integralFBy = 0.0f;
+			integralFBz = 0.0f;
+		}
 
-	// Apply proportional feedback
-	gx += twoKp * halfex;
-	gy += twoKp * halfey;
-	gz += twoKp * halfez;
+		// Apply proportional feedback
+		gx += twoKp * halfex;
+		gy += twoKp * halfey;
+		gz += twoKp * halfez;
 	}
 
 	// Integrate rate of change of quaternion
