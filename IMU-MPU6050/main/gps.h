@@ -5,14 +5,7 @@
 #include <stdbool.h>
 #include "imu_types.h"
 
-typedef struct gps {
-	char str[128];
-	GPS_Data data;
-
-    bool (*parse)(struct gps *self);
-
-} GPS;
-
-void GPS_Init(GPS *gps, uint8_t *status);
+void GPS_Init(uint8_t *status);
+void GPS_GetInfo(GPS_Data *info);
 
 #endif 

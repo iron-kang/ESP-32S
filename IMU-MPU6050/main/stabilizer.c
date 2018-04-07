@@ -5,6 +5,8 @@
 #include "estimator.h"
 #include "led.h"
 #include "controller.h"
+#include "ultrasonic.h"
+#include "gps.h"
 
 #define STABILIZER_TASK_NAME    "STABILIZER"
 
@@ -17,9 +19,12 @@ attitude_t attitude;
 
 void stabilizerTask(void* param);
 
-void Stabilizer()
+void Stabilizer(uint8_t *status)
 {
 	Controller_Init();
+	Ultrasonic_Init();
+	GPS_Init(status);
+	printf("gps status: %d\n", *status);
 	infoQueue = xQueueCreate(1, sizeof(Info));
 
 	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 8192, NULL, STABILIZER_TASK_PRI, NULL);
@@ -78,7 +83,8 @@ void stabilizerTask(void* param)
 		info.attitude.x = state.attitude.roll;
 		info.attitude.y = state.attitude.pitch;
 		info.attitude.z = state.attitude.yaw;
-		info.gps = sensorData.gps;
+		GPS_GetInfo(&info.gps);
+		Ultrasonic_GetDistance(&info.height);
 		xQueueOverwrite(infoQueue, &info);
 		attitude_t target;
 		target.pitch = 0;

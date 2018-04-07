@@ -7,7 +7,9 @@
 #define SENSORS_TASK_PRI        4
 #define STABILIZER_TASK_PRI     4
 #define NETWORK_TASK_PRI        3
-#define SYSTEM_TASK_PRI			3
+#define SYSTEM_TASK_PRI         3
+#define ULTRASONIC_TASK_PRI     2
+#define GPS_TASK_PRI            2
 
 #define TASK_LED_ID_NBR         1
 #define TASK_RADIO_ID_NBR       2
@@ -35,6 +37,8 @@
 #define PIN_MOTOR_2             4
 #define PIN_MOTOR_3             21
 #define PIN_MOTOR_4             22
+#define PIN_Ultrasonic_TRIG     27
+#define PIN_Ultrasonic_ECHO     35
 
 //Milliseconds to OS Ticks
 #define M2T(X) ((unsigned int)((X)*(configTICK_RATE_HZ/1000.0)))

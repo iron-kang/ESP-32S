@@ -4,7 +4,7 @@
 #include "common.h"
 #include "stabilizer_types.h"
 
-void Stabilizer();
+void Stabilizer(uint8_t *status);
 bool stabilizerTest(void);
 bool stablizer_GetState(Info *info);
 attitude_t *stablizer_GetAttitude();

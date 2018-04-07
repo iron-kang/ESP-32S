@@ -17,7 +17,7 @@
 
 typedef struct _tskpara {
 	struct netconn *newconn;
-	char buf_out[100];
+	char buf_out[200];
 }TaskPara;
 
 void action_getInfo(char *buf_in, TaskPara *para);
@@ -153,6 +153,7 @@ void action_getInfo(char *buf_in, TaskPara *para)
 
 //	printf("status: %d\n", *system_status);
 //	printf("bat: %f\n", data.bat);
+//	printf("GPS: %f, %f, %f\n", data.gps.latitude, data.gps.longitude, data.gps.altitude);
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 
@@ -247,6 +248,7 @@ void client_task(void *pvParameters)
 
 			if ((buf[0] != '@') || (buf[1] != '#'))
 				continue;
+			System_ClearNetTimout();
 //				printf(" %c\n", buf[2]);
 			netbuf_delete(inbuf);
 
@@ -296,6 +298,7 @@ void server_task(void *pvParameters)
 void Network_Init(uint8_t *status)
 {
 	system_status = status;
+
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));

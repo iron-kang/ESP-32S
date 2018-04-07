@@ -7,11 +7,15 @@
 #include "driver/uart.h" 
 #include "config.h"
 
-bool _parse(GPS *self);
+char str[128];
+GPS_Data gps_data;
 
-void GPS_Init(GPS *gps, uint8_t *status)
+bool parse();
+void gps_task(void* arg);
+
+void GPS_Init(uint8_t *status)
 {
-	int len;
+	int len = 0;
 	uint8_t tmp;
     uart_config_t uart_config = {                                          
         .baud_rate = GPS_UART_BAUD,
@@ -29,46 +33,80 @@ void GPS_Init(GPS *gps, uint8_t *status)
                  UART_PIN_NO_CHANGE, 
                  UART_PIN_NO_CHANGE);
     uart_driver_install(GPS_UART_NUM, 1024 * 2, 0, 0, NULL, 0);
-
-    gps->parse = _parse;
-    len = uart_read_bytes(GPS_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
+    vTaskDelay(1000 / portTICK_RATE_MS);
+    for (int i = 0; i < 10; i++)
+    {
+        len = uart_read_bytes(GPS_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
+        printf("gps len..: %d\n", len);
+        if (len > 0) break;
+    }
     if (len <= 0)
     	*status |= (1 << STATUS_GPS);
+    else
+    	xTaskCreate(gps_task, "gps_task", 4096, NULL, GPS_TASK_PRI, NULL);
 }
 
-bool _parse(GPS *self)
+void GPS_GetInfo(GPS_Data *info)
+{
+	memcpy(info, &gps_data, sizeof(GPS_Data));
+}
+
+void gps_task(void* arg)
+{
+	uint32_t lastWakeTime;
+
+	lastWakeTime = xTaskGetTickCount ();
+	while (true)
+	{
+		parse();
+		vTaskDelayUntil(&lastWakeTime, 100);
+	}
+}
+//$GNGGA,061824.00,2410.87115,N,12036.99107,E,1,05,1.55,172.7,M,16.3,M,,*45
+
+bool parse()
 {
     char *pos_N, *pos_E;
     uint8_t tmp;
     char substr[20];
 
     int i = 0, len;
-    memset(self->str, 0, 128);
+    memset(str, 0, 128);
     do {
     	len = uart_read_bytes(GPS_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
-    	if (len > 0) self->str[i++] = tmp;
+    	if (len > 0) str[i++] = tmp;
     	else
     		return false;
     } while (tmp != '\n');
 
-    if (strncmp(self->str, "$GNGLL", 6))
+//    printf("%s\n", str);
+//    if (strncmp(str, "$GNGLL", 6))
+	if (strncmp(str, "$GNGGA", 6))
        return false;
 
-//    printf("%s\n", self->str);
-    pos_N = strrchr(self->str, 'N');
-    if (pos_N == NULL || (pos_N-self->str) < 8) return false;
+	sscanf(str, "$GNGGA,%f,%f,%c,%f,%c,%d,%d,%f,%f,%f",
+			&gps_data.utc_time, &gps_data.latitude,  &gps_data.latitude_ch,
+			&gps_data.longitude, &gps_data.latitude_ch, &gps_data.status,
+			&gps_data.num, &gps_data.precision, &gps_data.altitude, &gps_data.height);
 
-    tmp = pos_N - self->str;
-    strncpy(substr, &self->str[7], tmp-1-7);
+//	printf("GPS: %f, %f, %f\n",
+//			gps_data.latitude, gps_data.longitude, gps_data.height);
+	return true;
+//    printf("%s\n", str);
+    pos_N = strrchr(str, 'N');
+    if (pos_N == NULL || (pos_N-str) < 8) return false;
+
+    tmp = pos_N - str;
+    strncpy(substr, &str[7], tmp-1-7);
     //printf("N: %s\n", substr);
-    self->data.latitude = atof(substr);
-    pos_E = strrchr(self->str, 'E');
+    gps_data.latitude = atof(substr);
+    pos_E = strrchr(str, 'E');
     if (pos_E == NULL) return false;
     memset(substr, 0, 20);
-    strncpy(substr, &self->str[tmp+2], pos_E-tmp-3-self->str);
+    strncpy(substr, &str[tmp+2], pos_E-tmp-3-str);
     //printf("E: %s\n", substr);
     //printf("posN: %d\n", pos_N - str);
-    self->data.longitude = atof(substr);
+    gps_data.longitude = atof(substr);
 
     return true;
 }

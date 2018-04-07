@@ -25,9 +25,10 @@ void init()
     Sensor_Init(&bus, &system_state);
 //    MQTT_Init();
     Motor_Init();
-    Stabilizer();
+    Stabilizer(&system_state);
     Network_Init(&system_state);
-    System_Init();
+    System_Init(&system_state);
+    printf("ALL status============= %d\n", system_state);
 }
 #if 0
 void mqtt_task(void *pvParameters)
@@ -48,6 +49,7 @@ void mqtt_task(void *pvParameters)
 	}
 }
 #endif
+
 void app_main()
 {
     init();

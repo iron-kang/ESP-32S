@@ -7,7 +7,6 @@
 #include "led.h"
 #include "kalman.h"
 #include "utility.h"
-#include "gps.h"
 #include "driver/uart.h"
 
 #define SENSORS_TASK_NAME           "SENSORS"
@@ -41,14 +40,12 @@ xQueueHandle accelerometerDataQueue;
 xQueueHandle gyroDataQueue;
 xQueueHandle magnetometerDataQueue;
 xQueueHandle barometerDataQueue;
-xQueueHandle gpsDataQueue;
 xSemaphoreHandle sensorsDataReady;
 bool gyroBiasFound = false;
 bool isMpu6500TestPassed = false;
 bool  isAK8963TestPassed = false;
 
 IMU imu;
-GPS gps;
 AK8963 mag;
 BiasObj gyroBiasRunning;
 Axis3f  gyroBias;
@@ -105,6 +102,7 @@ void Sensor_Init(Bus *bus, uint8_t *status)
 		if (try_cnt == 0)
 		{
 			LED_ON(PIN_LED_YELLOW);
+			*status |= (1 << STATUS_IMU);
 			printf("IMU I2C connection [FAIL].\n");
 			return;
 		}
@@ -177,8 +175,7 @@ void Sensor_Init(Bus *bus, uint8_t *status)
 
 
 	*status |= (!sensorsTest() << STATUS_IMU);
-
-	GPS_Init(&gps, status);
+	printf("imu status: %d\n", *status);
 
 	SensorTask_Init();
 }
@@ -370,7 +367,7 @@ void processAccGyroMeasurements(const uint8_t *buffer)
 //	gy = abs(gy) > 8 ? gy : 0;
 	gz = abs(gz) > 8 ? gz : 0;
 
-//	printf("a(%6d, %6d, %6d), g(%3d, %3d, %3d)\n", ax, ay, az-2048, gx, gy, gz);
+	//printf("a(%6d, %6d, %6d), g(%3d, %3d, %3d)\n", ax, ay, az-2048, gx, gy, gz);
 
 	gyroBiasFound = processGyroBias(gx, gy, gz, &gyroBias) | true;
 
@@ -451,11 +448,6 @@ bool sensorsReadMag(Axis3f *mag)
   return (pdTRUE == xQueueReceive(magnetometerDataQueue, mag, 0));
 }
 
-bool sensorsReadGPS(GPS_Data *gps)
-{
-	return (pdTRUE == xQueueReceive(gpsDataQueue, gps, 0));
-}
-
 bool sensorsTest()
 {
 	bool testStatus = true;
@@ -492,7 +484,6 @@ void sensorsAcquire(sensorData_t *sensors, const uint32_t tick)
 	sensorsReadGyro(&sensors->gyro);
 	sensorsReadAcc(&sensors->acc);
 	sensorsReadMag(&sensors->mag);
-	sensorsReadGPS(&sensors->gps);
 //	sensorsReadBaro(&sensors->baro);
 }
 
@@ -560,12 +551,7 @@ void sensorsTask(void *param)
 			xTaskResumeAll();
 
 		}
-#if 0
-		if (gps.parse(&gps))
-		{
-			xQueueOverwrite(gpsDataQueue, &gps.data);
-		}
-#endif
+
 
 	}
 }
@@ -576,7 +562,6 @@ void SensorTask_Init()
 	gyroDataQueue          = xQueueCreate(1, sizeof(Axis3f));
 	magnetometerDataQueue  = xQueueCreate(1, sizeof(Axis3f));
 	barometerDataQueue     = xQueueCreate(1, sizeof(baro_t));
-	gpsDataQueue           = xQueueCreate(1, sizeof(GPS_Data));
 
 	xTaskCreate(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL);
 //	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);
