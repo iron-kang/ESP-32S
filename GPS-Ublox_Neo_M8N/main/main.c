@@ -26,6 +26,14 @@
 GPS_M8N gps;
 SSD1306 ssd1306;
 
+void StartIdleMonitor(void)
+{
+}
+
+void EndIdleMonitor(void)
+{
+}
+
 void echo_task()
 {
     uint8_t data;
@@ -42,7 +50,23 @@ void echo_task()
             if (len > 0) str[i++] = data;
         } while (data != '\n');
 
-        //printf("%s", str);
+        printf("%s", str);
+        sscanf(str, "$GNGGA,%[^.],%f,%c,%f,%c,%d,%d,%f,%f,%f", 
+                    gps.utc_time, 
+                    &gps.latitude, 
+                    &gps.latitude_ch,
+                    &gps.longitude, 
+                    &gps.latitude_ch, 
+                    &gps.status,
+                    &gps.num, 
+                    &gps.precision, 
+                    &gps.altitude,
+                    &gps.height);
+
+        printf("%f,%c,%f,%c,%d,%d,%f,%f,%f\n",
+                gps.latitude,    gps.latitude_ch, gps.longitude,
+                gps.latitude_ch, gps.status,      gps.num, 
+                gps.precision,   gps.altitude,    gps.height); 
         if (gps.parse(&gps, str)) 
         {
             //sprintf(buf_display[0], "altitude: %.2f", gps.altitude);
@@ -61,7 +85,7 @@ void init()
 {
     gps.pin_Tx = TXD;
     gps.pin_Rx = RXD;
-	gps.baud = 9600;
+    gps.baud = 9600;
     gps.uart_num = UART_NUM_2;
     GPS_init(&gps);
 
@@ -77,6 +101,10 @@ void init()
     ssd1306.SSD1306_display(&ssd1306);
     vTaskDelay(2000 / portTICK_RATE_MS);
     ssd1306.SSD1306_clear(&ssd1306);
+
+    uint8_t data;
+    int len = uart_read_bytes(gps.uart_num, &data, 1, 20 / portTICK_RATE_MS);
+    printf("GPS uart status: %d\n", len);
 
 }
 

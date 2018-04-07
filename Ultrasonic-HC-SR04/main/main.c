@@ -19,6 +19,16 @@
 static xQueueHandle gpio_evt_queue = NULL;
 uint64_t time_high, time_low, time_escape;
 
+void StartIdleMonitor(void)
+{
+
+}
+
+void EndIdleMonitor(void)
+{
+
+}
+
 static void IRAM_ATTR ultrasonic_isr_handler(void* arg)
 {
     uint32_t gpio_num = (uint32_t) arg;
@@ -83,7 +93,6 @@ void app_main()
     timer_start(TIMER_GROUP_0, TIMER_0);
 
     while(1) {
-        printf("ultrasonic\n");
         gpio_set_level(Ultrasonic_TRIG, 1);
         vTaskDelay(10 / portTICK_RATE_MS);
         gpio_set_level(Ultrasonic_TRIG, 0);

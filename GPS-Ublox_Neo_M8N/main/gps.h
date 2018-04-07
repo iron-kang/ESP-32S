@@ -10,7 +10,16 @@ typedef struct gps {
     unsigned int baud;
     int uart_num;
 
-    float latitude, longitude, altitude;
+    char utc_time[30];
+    float latitude;
+    char latitude_ch;
+    float longitude;
+    char longitude_ch;
+    int status;
+    int num;
+    float precision;
+    float altitude;
+    float height;
 
     bool (*parse)(struct gps *self, const char *str);
 
