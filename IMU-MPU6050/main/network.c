@@ -172,6 +172,9 @@ void action_thrust(char *buf_in, TaskPara *para)
 		thrust = 0.5*2;
 	}
 	else if (buf_in[3] == '-') thrust = -0.5*2;
+	else {
+		printf("thrust: %d, %f\n", buf_in[3], thrust);
+	}
 
 	motor_LF.setBaseThrust(&motor_LF, thrust);
 	motor_LB.setBaseThrust(&motor_LB, thrust);
@@ -208,7 +211,6 @@ void action_direction(char *buf_in, TaskPara *para)
 		}
 	}
 	Controller_SetAttitude(&attitude_desired);
-	printf("cmd: %c\n", buf_in[3]);
 }
 
 
@@ -265,6 +267,7 @@ void client_task(void *pvParameters)
 			break;
 
 	}
+	printf("finish one client task\n");
 	netconn_delete(para->newconn);
 	free(para);
 	vTaskDelete(NULL);
@@ -285,7 +288,11 @@ void server_task(void *pvParameters)
 		TaskPara *para = (TaskPara *) malloc(sizeof(TaskPara));
 		err = netconn_accept(conn, &para->newconn);
 
-
+		if (err != ESP_OK)
+		{
+			*system_status |= (1 << STATUS_NET);
+			break;
+		}
 		xTaskCreate(&client_task, "client-task", 2048, para, NETWORK_TASK_PRI, NULL);
 
 	}
