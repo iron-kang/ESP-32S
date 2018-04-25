@@ -6,7 +6,8 @@
 
 void Stabilizer(uint8_t *status);
 bool stabilizerTest(void);
-bool stablizer_GetState(Info *info);
-attitude_t *stablizer_GetAttitude();
+bool stabilizer_GetState(Info *info);
+void stabilizer_GetState_Android(Info_Android *info);
+attitude_t *stabilizer_GetAttitude();
 
 #endif

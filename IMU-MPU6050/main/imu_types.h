@@ -59,11 +59,11 @@
  typedef struct _gps_data {
 	 float utc_time;
 	 float latitude;
-	 char latitude_ch;
+	 char  latitude_ch;
 	 float longitude;
-	 char longitude_ch;
-	 int status;
-	 int num;
+	 char  longitude_ch;
+	 int   status;
+	 int   num;
 	 float precision;
 	 float altitude;
 	 float height;
@@ -77,5 +77,14 @@
  	uint8_t status;
  	GPS_Data gps;
  }Info;
+
+ typedef struct _info_android {
+	 uint8_t status;
+	 float bat;
+	 int   height;
+	 float latitude;
+	 float longitude;
+	 float altitude;
+ }Info_Android;
 
 #endif /* IMU_TYPES_H_ */

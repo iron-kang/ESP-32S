@@ -13,7 +13,7 @@
 #include "controller.h"
 #include "system.h"
 
-#define ACT_NUM 8
+#define ACT_NUM 9
 
 typedef struct _tskpara {
 	struct netconn *newconn;
@@ -28,24 +28,28 @@ void action_setPID(char *buf_in, TaskPara *para);
 void action_reboot(char *buf_in, TaskPara *para);
 void action_stop(char *buf_in, TaskPara *para);
 void action_startup(char *buf_in, TaskPara *para);
+void action_getInfo_android(char *buf_in, TaskPara *para);
 
+static float bat;
 uint8_t connect_num = 0;
 uint8_t *system_status = NULL;
 state_t *state;
 Info data;
+Info_Android info_android;
 PidParam pid_attitude;
 PidParam pid_rate;
 attitude_t attitude_desired;
 Action actions[] = {
-	{action_getInfo,   'A'},
-	{action_getPID,    'a'},
-	{action_thrust,    'B'},
-	{action_direction, 'b'},
-	{action_setPID,    'C'},
-	{action_reboot,    'c'},
-	{action_stop,      'D'},
-	{action_startup,   'd'},
-	{NULL,			  '\0'}
+	{action_getInfo,         'A'},
+	{action_getPID,          'a'},
+	{action_thrust,          'B'},
+	{action_direction,       'b'},
+	{action_setPID,          'C'},
+	{action_reboot,          'c'},
+	{action_stop,            'D'},
+	{action_startup,         'd'},
+	{action_getInfo_android, 'F'},
+	{NULL,			        '\0'}
 };
 
 void action_startup(char *buf_in, TaskPara *para)
@@ -129,12 +133,25 @@ void action_getPID(char *buf_in, TaskPara *para)
 	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
+void action_getInfo_android(char *buf_in, TaskPara *para)
+{
+	stabilizer_GetState_Android(&info_android);
+	System_GetBatVal(&bat);
+	info_android.bat = bat;
+	info_android.status = *system_status;
+	para->buf_out[0] = 'A';
+	memcpy(&para->buf_out[1], &info_android, sizeof(info_android));
+	printf("(%d)android get info: %d, %f, %d, %f, %f, %f\n",sizeof(info_android)+1,
+			info_android.status, info_android.bat, info_android.height,
+			info_android.latitude, info_android.longitude, info_android.altitude);
+	netconn_write(para->newconn, para->buf_out, sizeof(Info_Android)+1, NETCONN_NOCOPY);
+}
+
 
 void action_getInfo(char *buf_in, TaskPara *para)
 {
-	static float bat;
 //	memset(para->buf_out, '0', 100);
-	stablizer_GetState(&data);
+	stabilizer_GetState(&data);
 //	state = stablizer_GetState();
 //
 //	data.attitude.x = state->attitude.roll;

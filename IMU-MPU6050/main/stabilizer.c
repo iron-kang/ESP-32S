@@ -96,12 +96,24 @@ void stabilizerTask(void* param)
 	}
 }
 
-bool stablizer_GetState(Info *info)
+bool stabilizer_GetState(Info *info)
 {
 	return (pdTRUE == xQueueReceive(infoQueue, info, 0));
 }
 
-attitude_t *stablizer_GetAttitude()
+void stabilizer_GetState_Android(Info_Android *info)
+{
+	Info tmp;
+	if (pdTRUE == xQueueReceive(infoQueue, &tmp, 0))
+	{
+		info->status    = tmp.status;
+		info->latitude  = tmp.gps.latitude;
+		info->longitude = tmp.gps.longitude;
+		info->altitude  = tmp.gps.altitude;
+	}
+}
+
+attitude_t *stabilizer_GetAttitude()
 {
 	return &attitude;
 }
