@@ -11,6 +11,7 @@
 #include "esp_err.h"
 #include "sdkconfig.h"
 #include "config.h"
+#include "led.h"
 #include "esp_log.h"
 
 enum {

@@ -180,17 +180,16 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 {
 	attitude_t rateDesired;
 	float error;
-
-	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick))
+	//LED_Toggle(PIN_LED_YELLOW);
+	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick) && motor_LF.thrust_base >= 57)
 	{
-		if (motor_LF.thrust_base < 57) return;
 
 		if (xQueueReceive(attitudeQueue, &attitude_desired, 0))
 			attitude_old = attitude_desired;
 		else
 			attitude_desired = attitude_old;
 
-//		LED_Toggle(PIN_LED_YELLOW);
+
 //		printf("D roll: %f, pitch: %f, yaw: %f\n", attitude_desired.roll, attitude_desired.pitch, attitude_desired.yaw);
 		rateDesired.roll  = PID_Exe(&pidRoll, target.roll*0 + attitude_desired.roll - state->attitude.roll);
 		rateDesired.pitch = PID_Exe(&pidPitch, target.pitch*0 + attitude_desired.pitch - state->attitude.pitch);
@@ -212,11 +211,16 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 		motor_RB.thrust_extra = -thrust_pitch - thrust_roll + thrust_yaw;
 
 //		printf("rpy_u: %f, %f, %f\n", thrust_roll, thrust_pitch, thrust_yaw);
-
+#if 0
 		motor_LF.update(&motor_LF);
 		motor_LB.update(&motor_LB);
 		motor_RF.update(&motor_RF);
 		motor_RB.update(&motor_RB);
+#endif
 	}
+	motor_LF.update(&motor_LF);
+	motor_LB.update(&motor_LB);
+	motor_RF.update(&motor_RF);
+	motor_RB.update(&motor_RB);
 }
 

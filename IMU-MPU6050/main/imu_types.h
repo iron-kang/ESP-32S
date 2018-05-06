@@ -64,7 +64,7 @@
 	 char  longitude_ch;
 	 int   status;
 	 int   num;
-	 float precision;
+	 float hdop;
 	 float altitude;
 	 float height;
  } GPS_Data;

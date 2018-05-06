@@ -9,6 +9,7 @@
 
 char str[128];
 GPS_Data gps_data;
+float llat, llong;
 
 bool parse();
 void gps_task(void* arg);
@@ -66,11 +67,9 @@ void gps_task(void* arg)
 
 bool parse()
 {
-    char *pos_N, *pos_E;
     uint8_t tmp;
-    char substr[20];
-
     int i = 0, len;
+
     memset(str, 0, 128);
     do {
     	len = uart_read_bytes(GPS_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
@@ -85,29 +84,18 @@ bool parse()
        return false;
 
 	sscanf(str, "$GNGGA,%f,%f,%c,%f,%c,%d,%d,%f,%f,%f",
-			&gps_data.utc_time, &gps_data.latitude,  &gps_data.latitude_ch,
-			&gps_data.longitude, &gps_data.latitude_ch, &gps_data.status,
-			&gps_data.num, &gps_data.precision, &gps_data.altitude, &gps_data.height);
+			&gps_data.utc_time, &llat,  &gps_data.latitude_ch,
+			&llong, &gps_data.latitude_ch, &gps_data.status,
+			&gps_data.num, &gps_data.hdop, &gps_data.altitude, &gps_data.height);
+	int ilat = llat/100;
+	double mins = fmod(llat, 100);
+	gps_data.latitude = ilat + (mins/60);
+	ilat = llong/100;
+	mins = fmod(llong, 100);
+	gps_data.longitude = ilat + (mins/60);
 
 //	printf("GPS: %f, %f, %f\n",
 //			gps_data.latitude, gps_data.longitude, gps_data.height);
 	return true;
-//    printf("%s\n", str);
-    pos_N = strrchr(str, 'N');
-    if (pos_N == NULL || (pos_N-str) < 8) return false;
-
-    tmp = pos_N - str;
-    strncpy(substr, &str[7], tmp-1-7);
-    //printf("N: %s\n", substr);
-    gps_data.latitude = atof(substr);
-    pos_E = strrchr(str, 'E');
-    if (pos_E == NULL) return false;
-    memset(substr, 0, 20);
-    strncpy(substr, &str[tmp+2], pos_E-tmp-3-str);
-    //printf("E: %s\n", substr);
-    //printf("posN: %d\n", pos_N - str);
-    gps_data.longitude = atof(substr);
-
-    return true;
 }
 

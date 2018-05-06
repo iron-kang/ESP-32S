@@ -563,7 +563,7 @@ void SensorTask_Init()
 	magnetometerDataQueue  = xQueueCreate(1, sizeof(Axis3f));
 	barometerDataQueue     = xQueueCreate(1, sizeof(baro_t));
 
-	xTaskCreate(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL);
-//	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);
+//	xTaskCreate(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL);
+	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 0);
 }
 

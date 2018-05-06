@@ -27,8 +27,8 @@ void Stabilizer(uint8_t *status)
 	printf("gps status: %d\n", *status);
 	infoQueue = xQueueCreate(1, sizeof(Info));
 
-	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 8192, NULL, STABILIZER_TASK_PRI, NULL);
-//	xTaskCreatePinnedToCore(stabilizerTask, STABILIZER_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 1);
+//	xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME, 8192, NULL, STABILIZER_TASK_PRI, NULL);
+	xTaskCreatePinnedToCore(stabilizerTask, STABILIZER_TASK_NAME, 8192, NULL, STABILIZER_TASK_PRI, NULL, 1);
 }
 
 bool stabilizerTest(void)
@@ -73,25 +73,25 @@ void stabilizerTask(void* param)
 	while (true)
 	{
 		vTaskDelayUntil(&lastWakeTime, 1);
-
-//		getExtPosition(&state);
-
 //		LED_Toggle(PIN_LED_YELLOW);
 		sensorsAcquire(&sensorData, tick);
 		stateEstimator(&state, &sensorData, tick);
 //		sensorsKalman(&sensorData, &attitude, 0.001);
+#if 1
 		info.attitude.x = state.attitude.roll;
 		info.attitude.y = state.attitude.pitch;
 		info.attitude.z = state.attitude.yaw;
 		GPS_GetInfo(&info.gps);
 		Ultrasonic_GetDistance(&info.height);
 		xQueueOverwrite(infoQueue, &info);
+
 		attitude_t target;
 		target.pitch = 0;
 		target.roll = 0;
 		target.yaw = 0;
-		Controller_PID(&state, &sensorData, target, tick);
 
+		Controller_PID(&state, &sensorData, target, tick);
+#endif
 		tick++;
 	}
 }

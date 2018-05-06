@@ -15,6 +15,8 @@
 
 #define ACT_NUM 9
 
+static const char *TAG = "Network";
+
 typedef struct _tskpara {
 	struct netconn *newconn;
 	char buf_out[200];
@@ -49,7 +51,7 @@ Action actions[] = {
 	{action_stop,            'D'},
 	{action_startup,         'd'},
 	{action_getInfo_android, 'F'},
-	{NULL,			        '\0'}
+	{NULL,                   '\0'}
 };
 
 void action_startup(char *buf_in, TaskPara *para)
@@ -141,9 +143,11 @@ void action_getInfo_android(char *buf_in, TaskPara *para)
 	info_android.status = *system_status;
 	para->buf_out[0] = 'A';
 	memcpy(&para->buf_out[1], &info_android, sizeof(info_android));
+#if 0
 	printf("(%d)android get info: %d, %f, %d, %f, %f, %f\n",sizeof(info_android)+1,
 			info_android.status, info_android.bat, info_android.height,
 			info_android.latitude, info_android.longitude, info_android.altitude);
+#endif
 	netconn_write(para->newconn, para->buf_out, sizeof(Info_Android)+1, NETCONN_NOCOPY);
 }
 
@@ -179,26 +183,47 @@ void action_getInfo(char *buf_in, TaskPara *para)
 
 void action_thrust(char *buf_in, TaskPara *para)
 {
-	float thrust = 0;
-	if (buf_in[3] == '+')
+	float thrust = -1;
+	//printf("thrust cmd: %c\n", buf_in[3]);
+	switch (buf_in[3])
 	{
+	case '+':
+#if 0
 		if (thrust > 62)
 			thrust = 0.5;
 		else
 			thrust = 0.5*3;
 		thrust = 0.5*2;
-	}
-	else if (buf_in[3] == '-') thrust = -0.5*2;
-	else {
-		printf("thrust: %d, %f\n", buf_in[3], thrust);
+#endif
+		thrust = 0.001;
+		break;
+	case '-':
+#if 0
+		thrust = -0.5*2;
+#endif
+		thrust = -0.001;
+		break;
+	case 'o':
+		thrust = 0;
+		break;
 	}
 
+#if 0
 	motor_LF.setBaseThrust(&motor_LF, thrust);
 	motor_LB.setBaseThrust(&motor_LB, thrust);
 	motor_RF.setBaseThrust(&motor_RF, thrust);
 	motor_RB.setBaseThrust(&motor_RB, thrust);
+#endif
 
-//	printf("thrust: %f\n", motor_LF.thrust_base);
+	if (thrust != -1)
+	{
+		motor_LF.setThrustAdd(&motor_LF, thrust);
+		motor_LB.setThrustAdd(&motor_LB, thrust);
+		motor_RF.setThrustAdd(&motor_RF, thrust);
+		motor_RB.setThrustAdd(&motor_RB, thrust);
+		//printf("thrust: %f(%f)\n", motor_LF.thrust_base, thrust);
+	}
+
 }
 
 void action_direction(char *buf_in, TaskPara *para)
@@ -234,6 +259,7 @@ void action_direction(char *buf_in, TaskPara *para)
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     switch(event->event_id) {
+#if EXAMPLE_ESP_WIFI_MODE_AP
     case SYSTEM_EVENT_AP_START:
 		printf("Access point started\n");
 		break;
@@ -243,6 +269,27 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 	case SYSTEM_EVENT_AP_STADISCONNECTED:
 		printf("disconnect\n");
 		break;
+#else
+	case SYSTEM_EVENT_STA_START:
+		esp_wifi_connect();
+		break;
+	case SYSTEM_EVENT_STA_GOT_IP:
+		ESP_LOGI(TAG, "got ip:%s", ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+		break;
+	case SYSTEM_EVENT_AP_STACONNECTED:
+		ESP_LOGI(TAG, "station:"MACSTR" join, AID=%d",
+				MAC2STR(event->event_info.sta_connected.mac),
+				event->event_info.sta_connected.aid);
+		break;
+	case SYSTEM_EVENT_AP_STADISCONNECTED:
+		ESP_LOGI(TAG, "station:"MACSTR"leave, AID=%d",
+				MAC2STR(event->event_info.sta_disconnected.mac),
+				event->event_info.sta_disconnected.aid);
+		break;
+	case SYSTEM_EVENT_STA_DISCONNECTED:
+		esp_wifi_connect();
+		break;
+#endif
 	default:
         break;
     }
@@ -325,6 +372,8 @@ void Network_Init(uint8_t *status)
 
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
+	ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+#if EXAMPLE_ESP_WIFI_MODE_AP
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP));
 	tcpip_adapter_ip_info_t info;
 	memset(&info, 0, sizeof(info));
@@ -334,7 +383,6 @@ void Network_Init(uint8_t *status)
 	ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &info));
 
 	ESP_ERROR_CHECK(tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP));
-	ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 	wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
 	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
@@ -342,8 +390,8 @@ void Network_Init(uint8_t *status)
 
 	wifi_config_t ap_config = {
 		.ap = {
-			.ssid = CONFIG_AP_SSID,
-			.password = CONFIG_AP_PASSWORD,
+			.ssid = CONFIG_WIFI_SSID,
+			.password = CONFIG_WIFI_PASSWORD,
 			.ssid_len = 0,
 			.channel = 6,
 			.authmode = WIFI_AUTH_WPA2_PSK,
@@ -355,6 +403,20 @@ void Network_Init(uint8_t *status)
 
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
+#else
+	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+	wifi_config_t wifi_config = {
+			.sta = {
+				.ssid = CONFIG_WIFI_SSID,
+				.password = CONFIG_WIFI_PASSWORD,
+			},
+	};
 
+	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+	ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
+	ESP_ERROR_CHECK(esp_wifi_start() );
+#endif
 	xTaskCreate(&server_task, "server-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
 }

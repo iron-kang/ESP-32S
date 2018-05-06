@@ -15,14 +15,16 @@ typedef enum {
 
 typedef struct _motor {
 	uint8_t id;
-	float thrust_base;
-	float thrust_extra;
-	float thrust;
+	double thrust_base;
+	double thrust_extra;
+	double thrust;
+	double thrust_add;
 	xSemaphoreHandle mutex;
 
 	void (*update)(struct _motor *this);
 	void (*d4)(struct _motor *this);
 	void (*setBaseThrust)(struct _motor *this, float val);
+	void (*setThrustAdd)(struct _motor *this, float val);
 }Motor;
 
 Motor motor_LF, motor_LB, motor_RF, motor_RB;

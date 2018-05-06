@@ -1,18 +1,35 @@
-menu "Access Point configuration"
+menu "WiFi configuration"
 
-	config AP_SSID
+	choice ESP_WIFI_MODE
+		prompt "AP or STA"
+		default ESP_WIFI_IS_STATION
+		help
+			Whether the esp32 is softAP or station.
+			
+	config ESP_WIFI_IS_SOFTAP                                      
+		bool "SoftAP"                                              
+	config ESP_WIFI_IS_STATION                                     
+		bool "Station"                                             
+	endchoice
+    
+	config ESP_WIFI_MODE_AP
+		bool
+		default y if ESP_WIFI_IS_SOFTAP                            
+		default n if ESP_WIFI_IS_STATION 
+
+	config WIFI_SSID
 		string "Wifi SSID"
 		default "esp32-ap"
 		help
 			SSID for the Access Point Wifi network (max 31 chars)
 
-	config AP_PASSWORD
+	config WIFI_PASSWORD
 		string "Wifi password"
 		help
 			Password for the Wifi network (if needed)
 
-	config AP_CHANNEL
-		int "Wifi channel"
+	config WIFI_CHANNEL
+	int "Wifi channel"
 		default 0
 		help
 			Channel for the Wifi network
@@ -36,20 +53,20 @@ menu "Access Point configuration"
 			bool "WPA2 Enterprise"			
 	endchoice
 	
-	config AP_HIDE_SSID
+	config WIFI_HIDE_SSID
 		bool "Hide SSID"
 		default 0
 		help
 			Hide SSID
 	
-	config AP_MAX_CONNECTIONS
+	config WIFI_MAX_CONNECTIONS
 		int "Maximum concurrent connections"
 		range 1 4
 		default 4
 		help
 			Maximum number of concurrent connections (1-4)
 	
-	config AP_BEACON_INTERVAL	
+	config WIFI_BEACON_INTERVAL	
 		int "Beacon interval (ms)"
 		range 100 60000
 		default 100
