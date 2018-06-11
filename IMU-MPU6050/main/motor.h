@@ -23,8 +23,8 @@ typedef struct _motor {
 
 	void (*update)(struct _motor *this);
 	void (*d4)(struct _motor *this);
-	void (*setBaseThrust)(struct _motor *this, float val);
-	void (*setThrustAdd)(struct _motor *this, float val);
+	void (*setBaseThrust)(struct _motor *this, double val);
+
 }Motor;
 
 Motor motor_LF, motor_LB, motor_RF, motor_RB;

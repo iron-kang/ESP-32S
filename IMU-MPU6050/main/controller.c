@@ -93,7 +93,7 @@ float pid_para[PID_NUM] = {
 xQueueHandle attitudeQueue;
 nvs_handle nvs;
 attitude_t attitude_old, attitude_desired;
-const float SCALE = 1000.0;
+const float SCALE = 100.0;
 
 void Controller_Init()
 {
@@ -117,6 +117,13 @@ void Controller_Init()
 		else
 			printf("%s load fail\n", pid_key[i]);
 	}
+
+	pid_para[PID_ROLL_RATE_KD]  /= 10;
+	pid_para[PID_PITCH_RATE_KD] /= 10;
+	pid_para[PID_YAW_RATE_KD]   /= 10;
+	pid_para[PID_ROLL_KD]       /= 10;
+	pid_para[PID_PITCH_KD]      /= 10;
+	pid_para[PID_YAW_KD]        /= 10;
 
 //	for (int i = 0; i < PID_NUM; i++)
 //		nvs_set_u16(nvs, pid_key[i], i);
@@ -154,34 +161,37 @@ void Controller_SetPID(PidParam pid_atti, PidParam pid_rate)
 	printf("roll pid: %f, %f, %f\n", pid_atti.roll[KP], pid_atti.roll[KI], pid_atti.roll[KD]);
 	printf("save pid: %d, %d, %d\n", (uint16_t)(pid_atti.roll[KP]*SCALE),
 			                         (uint16_t)(pid_atti.roll[KI]*SCALE),
-									 (uint16_t)(pid_atti.roll[KD]*SCALE));
+									 (uint16_t)(pid_atti.roll[KD]*SCALE*10));
+	printf("save pid: %d, %d, %d\n", (uint16_t)(pid_atti.pitch[KP]*SCALE),
+				                         (uint16_t)(pid_atti.pitch[KI]*SCALE),
+										 (uint16_t)(pid_atti.pitch[KD]*SCALE*10));
 	nvs_set_u16(nvs, pid_key[PID_ROLL_KP], (uint16_t)(pid_atti.roll[KP]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_ROLL_KI], (uint16_t)(pid_atti.roll[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_ROLL_KD], (uint16_t)(pid_atti.roll[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_ROLL_KD], (uint16_t)(pid_atti.roll[KD]*SCALE*10));
 	nvs_set_u16(nvs, pid_key[PID_PITCH_KP], (uint16_t)(pid_atti.pitch[KP]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_PITCH_KI], (uint16_t)(pid_atti.pitch[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_PITCH_KD], (uint16_t)(pid_atti.pitch[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_PITCH_KD], (uint16_t)(pid_atti.pitch[KD]*SCALE*10));
 	nvs_set_u16(nvs, pid_key[PID_YAW_KP], (uint16_t)(pid_atti.yaw[KP]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_YAW_KI], (uint16_t)(pid_atti.yaw[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_YAW_KD], (uint16_t)(pid_atti.yaw[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_YAW_KD], (uint16_t)(pid_atti.yaw[KD]*SCALE*10));
 
 	nvs_set_u16(nvs, pid_key[PID_ROLL_RATE_KP], (uint16_t)(pid_rate.roll[KP]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_ROLL_RATE_KI], (uint16_t)(pid_rate.roll[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_ROLL_RATE_KD], (uint16_t)(pid_rate.roll[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_ROLL_RATE_KD], (uint16_t)(pid_rate.roll[KD]*SCALE*10));
 	nvs_set_u16(nvs, pid_key[PID_PITCH_RATE_KP], (uint16_t)(pid_rate.pitch[KP]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_PITCH_RATE_KI], (uint16_t)(pid_rate.pitch[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_PITCH_RATE_KD], (uint16_t)(pid_rate.pitch[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_PITCH_RATE_KD], (uint16_t)(pid_rate.pitch[KD]*SCALE*10));
 	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KP], (uint16_t)(pid_rate.yaw[KP]*SCALE));
 	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KI], (uint16_t)(pid_rate.yaw[KI]*SCALE));
-	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KD], (uint16_t)(pid_rate.yaw[KD]*SCALE));
+	nvs_set_u16(nvs, pid_key[PID_YAW_RATE_KD], (uint16_t)(pid_rate.yaw[KD]*SCALE*10));
 }
 
 void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, uint32_t tick)
 {
 	attitude_t rateDesired;
 	float error;
-	//LED_Toggle(PIN_LED_YELLOW);
-	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick) && motor_LF.thrust_base >= 57)
+//	LED_Toggle(PIN_LED_YELLOW);
+	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick) && motor_LF.thrust_base >= 56)
 	{
 
 		if (xQueueReceive(attitudeQueue, &attitude_desired, 0))
@@ -211,16 +221,13 @@ void Controller_PID(state_t *state, sensorData_t *sensors, attitude_t target, ui
 		motor_RB.thrust_extra = -thrust_pitch - thrust_roll + thrust_yaw;
 
 //		printf("rpy_u: %f, %f, %f\n", thrust_roll, thrust_pitch, thrust_yaw);
-#if 0
+#if 1
 		motor_LF.update(&motor_LF);
 		motor_LB.update(&motor_LB);
 		motor_RF.update(&motor_RF);
 		motor_RB.update(&motor_RB);
 #endif
 	}
-	motor_LF.update(&motor_LF);
-	motor_LB.update(&motor_LB);
-	motor_RF.update(&motor_RF);
-	motor_RB.update(&motor_RB);
+
 }
 

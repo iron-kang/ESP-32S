@@ -2,13 +2,12 @@
 #include "driver/mcpwm.h"
 #include "common.h"
 
-#define THRUST_MAX 60
+#define THRUST_MAX 70
 #define THRUST_MIN 42
 
 void _update(Motor *this);
 void _d4(Motor *this);
-void _setBaseThrust(Motor *this, float val);
-void _setThrustAdd(Motor *this, float val);
+void _setBaseThrust(Motor *this, double val);
 
 void Motor_Init()
 {
@@ -53,10 +52,6 @@ void Motor_Init()
 	motor_LB.thrust_extra = 0;
 	motor_RF.thrust_extra = 0;
 	motor_RB.thrust_extra = 0;
-	motor_LF.thrust_add   = 0;
-	motor_LB.thrust_add   = 0;
-	motor_RF.thrust_add   = 0;
-	motor_RB.thrust_add   = 0;
 
 	motor_LF.mutex = xSemaphoreCreateMutex();
 	motor_LB.mutex = xSemaphoreCreateMutex();
@@ -78,11 +73,6 @@ void Motor_Init()
 	motor_RF.setBaseThrust = _setBaseThrust;
 	motor_RB.setBaseThrust = _setBaseThrust;
 
-	motor_LF.setThrustAdd = _setThrustAdd;
-	motor_LB.setThrustAdd = _setThrustAdd;
-	motor_RF.setThrustAdd = _setThrustAdd;
-	motor_RB.setThrustAdd = _setThrustAdd;
-
 	motor_LF.update(&motor_LF);
 	motor_LB.update(&motor_LB);
 	motor_RF.update(&motor_RF);
@@ -94,23 +84,18 @@ void Motor_Init()
 	printf("pwm duty: %f\n", duty);
 }
 
-void _setBaseThrust(Motor *this, float val)
+void _setBaseThrust(Motor *this, double val)
 {
-	if ((this->thrust_base+val) > THRUST_MAX)
+	if ((this->thrust_base) > THRUST_MAX)
 		this->thrust_base = THRUST_MAX;
-	else if ((this->thrust_base+val) < THRUST_MIN)
+	else if ((this->thrust_base) < THRUST_MIN)
 		this->thrust_base = THRUST_MIN;
 	else
-		this->thrust_base += val;
+		this->thrust_base = val;
 
 	//printf("thrust: %f, %f\n", this->thrust_base, val);
 
 	this->update(this);
-}
-
-void _setThrustAdd(Motor *this, float val)
-{
-	this->thrust_add = val;
 }
 
 void _d4(Motor *this)
@@ -124,8 +109,6 @@ void _d4(Motor *this)
 void _update(Motor *this)
 {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (this->thrust_add != 0) this->thrust_base += this->thrust_add;
-
 	this->thrust = this->thrust_base + this->thrust_extra;
 	if (this->thrust > THRUST_MAX || this->thrust < THRUST_MIN)
 	{

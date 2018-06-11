@@ -122,8 +122,8 @@ void System_Init(uint8_t *status)
 {
 	sys_status = status;
 	BatRead_Init();
-	esp_register_freertos_idle_hook(vApplicationIdleHook);
-	esp_register_freertos_tick_hook(vApplicationTickHook);
+	//esp_register_freertos_idle_hook(vApplicationIdleHook);
+	//esp_register_freertos_tick_hook(vApplicationTickHook);
 
 	xTaskCreate(&system_task, "system_task", 4096, NULL, SYSTEM_TASK_PRI, NULL);
 }

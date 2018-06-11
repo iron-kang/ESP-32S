@@ -56,19 +56,16 @@ Action actions[] = {
 
 void action_startup(char *buf_in, TaskPara *para)
 {
-	motor_LF.thrust_base = 49.4;
-	motor_LB.thrust_base = 49.4;
-	motor_RF.thrust_base = 49.4;
-	motor_RB.thrust_base = 49.4;
-
-	motor_LF.update(&motor_LF);
-	motor_LB.update(&motor_LB);
-	motor_RF.update(&motor_RF);
-	motor_RB.update(&motor_RB);
+	printf("startup\n");
+	motor_LF.setBaseThrust(&motor_LF, 49.4);
+	motor_LB.setBaseThrust(&motor_LB, 49.4);
+	motor_RF.setBaseThrust(&motor_RF, 49.4);
+	motor_RB.setBaseThrust(&motor_RB, 49.4);
 }
 
 void action_stop(char *buf_in, TaskPara *para)
 {
+	printf("stop\n");
 	motor_LF.d4(&motor_LF);
 	motor_LB.d4(&motor_LB);
 	motor_RF.d4(&motor_RF);
@@ -102,6 +99,8 @@ void action_setPID(char *buf_in, TaskPara *para)
 
 	Controller_SetPID(pid_attitude, pid_rate);
 
+	printf("roll : %f, %f, %f\n", pid_attitude.roll[KP], pid_attitude.roll[KI], pid_attitude.roll[KD]);
+	printf("pitch : %f, %f, %f\n", pid_attitude.pitch[KP], pid_attitude.pitch[KI], pid_attitude.pitch[KD]);
 	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
@@ -183,47 +182,28 @@ void action_getInfo(char *buf_in, TaskPara *para)
 
 void action_thrust(char *buf_in, TaskPara *para)
 {
-	float thrust = -1;
-	//printf("thrust cmd: %c\n", buf_in[3]);
-	switch (buf_in[3])
-	{
-	case '+':
+	double thrust = 0;
 #if 0
+	if (buf_in[3] == '+')
+	{
 		if (thrust > 62)
-			thrust = 0.5;
-		else
-			thrust = 0.5*3;
-		thrust = 0.5*2;
-#endif
-		thrust = 0.001;
-		break;
-	case '-':
-#if 0
-		thrust = -0.5*2;
-#endif
-		thrust = -0.001;
-		break;
-	case 'o':
-		thrust = 0;
-		break;
+ 			thrust = 0.5;
+ 		else
+ 			thrust = 0.5*3;
+ 		thrust = 0.5*2;
 	}
+	else if (buf_in[3] == '-') thrust = -0.5*2;
+	else {
 
-#if 0
+		thrust = 50 + buf_in[3]/10.0;
+	}
+#endif
+	thrust = 50 + buf_in[3]/8.0;
 	motor_LF.setBaseThrust(&motor_LF, thrust);
-	motor_LB.setBaseThrust(&motor_LB, thrust);
-	motor_RF.setBaseThrust(&motor_RF, thrust);
-	motor_RB.setBaseThrust(&motor_RB, thrust);
-#endif
-
-	if (thrust != -1)
-	{
-		motor_LF.setThrustAdd(&motor_LF, thrust);
-		motor_LB.setThrustAdd(&motor_LB, thrust);
-		motor_RF.setThrustAdd(&motor_RF, thrust);
-		motor_RB.setThrustAdd(&motor_RB, thrust);
-		//printf("thrust: %f(%f)\n", motor_LF.thrust_base, thrust);
-	}
-
+ 	motor_LB.setBaseThrust(&motor_LB, thrust);
+ 	motor_RF.setBaseThrust(&motor_RF, thrust);
+ 	motor_RB.setBaseThrust(&motor_RB, thrust);
+ 	printf("thrust: %f, %d\n", motor_LF.thrust_base, buf_in[3]);
 }
 
 void action_direction(char *buf_in, TaskPara *para)
