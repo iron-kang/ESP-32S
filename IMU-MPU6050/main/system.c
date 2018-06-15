@@ -8,11 +8,12 @@
 #include "freertos/queue.h"
 #include "esp_freertos_hooks.h"
 #include "led.h"
+#include "motor.h"
 
 #define CALCULATION_PERIOD    1000
 #define SAMPLE_NUM 20
 #define BATTERY_SCALE (750+240)/240.0
-#define NETWORK_TIMEOUT_MAX   10000
+#define NETWORK_TIMEOUT_MAX   8
 
 xTaskHandle    xIdleHandle = NULL;
 uint32_t osCPU_Usage = 0;
@@ -44,6 +45,7 @@ void system_task(void *pvParameters)
 	lastWakeTime = xTaskGetTickCount ();
 	while (true)
 	{
+		net_timeout++;
 		bat[cnt++] = adc1_get_raw(ADC1_CHANNEL_4);
 		cnt %= SAMPLE_NUM;
 		avg = 0;
@@ -61,6 +63,10 @@ void system_task(void *pvParameters)
 		if (net_timeout >= NETWORK_TIMEOUT_MAX)
 		{
 			*sys_status |= (1 << STATUS_NET);
+			motor_LF.d4(&motor_LF);
+			motor_LB.d4(&motor_LB);
+			motor_RF.d4(&motor_RF);
+			motor_RB.d4(&motor_RB);
 		}
 		else
 			*sys_status &= ~(1UL << STATUS_NET);

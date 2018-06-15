@@ -483,7 +483,7 @@ void sensorsAcquire(sensorData_t *sensors, const uint32_t tick)
 {
 	sensorsReadGyro(&sensors->gyro);
 	sensorsReadAcc(&sensors->acc);
-	sensorsReadMag(&sensors->mag);
+//	sensorsReadMag(&sensors->mag);
 //	sensorsReadBaro(&sensors->baro);
 }
 
@@ -542,12 +542,12 @@ void sensorsTask(void *param)
 //			LED_Toggle(PIN_LED_YELLOW);
 			imu.readAllRaw(&imu, buffer, BUF_LEN);
 			processAccGyroMeasurements(&(buffer[0]));
-			processMagnetometerMeasurements(&(buffer[SENSORS_MPU6050_BUFF_LEN]));
+			//processMagnetometerMeasurements(&(buffer[SENSORS_MPU6050_BUFF_LEN]));
 
 			vTaskSuspendAll();
 			xQueueOverwrite(accelerometerDataQueue, &sensors.acc);
 			xQueueOverwrite(gyroDataQueue, &sensors.gyro);
-			xQueueOverwrite(magnetometerDataQueue, &sensors.mag);
+			//xQueueOverwrite(magnetometerDataQueue, &sensors.mag);
 			xTaskResumeAll();
 
 		}

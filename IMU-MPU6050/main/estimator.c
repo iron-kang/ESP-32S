@@ -72,7 +72,6 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
 	    //				sensorData->gyro.x, sensorData->gyro.y, sensorData->gyro.z);
 	    sensfusion6GetEulerRPY(&state->attitude.pitch, &state->attitude.roll, &state->attitude.yaw);
 
-
 	    state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
 	                                                    sensorData->acc.y,
 	                                                    sensorData->acc.z);

@@ -12,7 +12,9 @@
 #include "motor.h"
 #include "controller.h"
 #include "system.h"
+#include "driver/uart.h"
 
+#define Telemetry_433
 #define ACT_NUM 9
 
 static const char *TAG = "Network";
@@ -176,8 +178,19 @@ void action_getInfo(char *buf_in, TaskPara *para)
 //	printf("GPS: %f, %f, %f\n", data.gps.latitude, data.gps.longitude, data.gps.altitude);
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
-
+#ifdef Telemetry_433
+	int len = 0;
+	uint8_t tryCnt = 0;
+	while (len != (sizeof(data)+1))
+	{
+		len = uart_write_bytes(Telemetry_UART_NUM, para->buf_out, sizeof(data)+1);
+		tryCnt++;
+		if (tryCnt > 10)
+			break;
+	}
+#else
 	netconn_write(para->newconn, para->buf_out, sizeof(data)+1, NETCONN_NOCOPY);
+#endif
 }
 
 void action_thrust(char *buf_in, TaskPara *para)
@@ -213,19 +226,19 @@ void action_direction(char *buf_in, TaskPara *para)
 		switch (buf_in[3])
 		{
 		case 'r':
-			attitude_desired.roll = 13;
+			attitude_desired.roll = 6;
 			break;
 		case 'l':
-			attitude_desired.roll = -13;
+			attitude_desired.roll = -6;
 			break;
 		case 's':
 			attitude_desired.roll = 0;
 			break;
 		case 'f':
-			attitude_desired.pitch = -13;
+			attitude_desired.pitch = -6;
 			break;
 		case 'b':
-			attitude_desired.pitch = 13;
+			attitude_desired.pitch = 6;
 			break;
 		case 'S':
 			attitude_desired.pitch = 0;
@@ -316,6 +329,39 @@ void client_task(void *pvParameters)
 	free(para);
 	vTaskDelete(NULL);
 }
+void server_telemetry_task(void *pvParameters)
+{
+	uint32_t lastWakeTime;
+	uint8_t tmp, act, buf[2];
+	int len = 0;
+	TaskPara *para = (TaskPara *) malloc(sizeof(TaskPara));
+
+	while (true)
+	{
+		len = uart_read_bytes(Telemetry_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
+
+		if (len == 1 && tmp == '@')
+		{
+			len = uart_read_bytes(Telemetry_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
+			if (len == 1 && tmp == '#')
+			{
+				System_ClearNetTimout();
+				len = uart_read_bytes(Telemetry_UART_NUM, buf, 2, 20 / portTICK_RATE_MS);
+				printf("head: %x\n", buf[0]);
+				for (act = 0; act < ACT_NUM; act++)
+				{
+					if (buf[0] == actions[act].header)
+					{
+						actions[act].action(buf, para);
+						break;
+					}
+				}
+			}
+		}
+		vTaskDelayUntil(&lastWakeTime, 100);
+	}
+	free(para);
+}
 
 void server_task(void *pvParameters)
 {
@@ -349,7 +395,24 @@ void server_task(void *pvParameters)
 void Network_Init(uint8_t *status)
 {
 	system_status = status;
+#ifdef Telemetry_433
+	uart_config_t uart_config = {
+		.baud_rate = 57600,
+		.data_bits = UART_DATA_8_BITS,
+		.parity = UART_PARITY_DISABLE,
+		.stop_bits = UART_STOP_BITS_1,
+		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+		.rx_flow_ctrl_thresh = 122,
+	};
 
+	uart_param_config(Telemetry_UART_NUM, &uart_config);
+	uart_set_pin(Telemetry_UART_NUM,
+				 PIN_Telemetry_TX,
+				 PIN_Telemetry_RX,
+				 UART_PIN_NO_CHANGE,
+				 UART_PIN_NO_CHANGE);
+	uart_driver_install(Telemetry_UART_NUM, 1024 * 2, 0, 0, NULL, 0);
+#else
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
@@ -399,4 +462,6 @@ void Network_Init(uint8_t *status)
 	ESP_ERROR_CHECK(esp_wifi_start() );
 #endif
 	xTaskCreate(&server_task, "server-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
+#endif
+	xTaskCreate(&server_telemetry_task, "server-telemetry-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
 }

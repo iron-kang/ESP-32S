@@ -21,9 +21,12 @@
 // Bus speed
 #define IMU_I2C_SPEED    	  	400000
 #define GPS_UART_BAUD			9600
+#define Ultrasonic_BAUD         19200
+#define Telemetry_BAUD          57600
 
 // Bus channel
 #define GPS_UART_NUM			UART_NUM_2
+#define Telemetry_UART_NUM	    UART_NUM_1
 #define IMU_I2C_NUM				I2C_NUM_1
 
 // GPIO pin define
@@ -37,8 +40,10 @@
 #define PIN_MOTOR_2             4
 #define PIN_MOTOR_3             21
 #define PIN_MOTOR_4             22
-#define PIN_Ultrasonic_TRIG     27
-#define PIN_Ultrasonic_ECHO     35
+#define PIN_Ultrasonic_TX       13
+#define PIN_Ultrasonic_RX       14
+#define PIN_Telemetry_TX        12
+#define PIN_Telemetry_RX        27
 
 //Milliseconds to OS Ticks
 #define M2T(X) ((unsigned int)((X)*(configTICK_RATE_HZ/1000.0)))

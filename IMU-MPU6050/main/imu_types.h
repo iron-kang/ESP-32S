@@ -73,7 +73,7 @@
  	AXIS attitude;
  	float thrust[4];
  	float bat;
- 	float height;
+ 	unsigned int height;
  	uint8_t status;
  	GPS_Data gps;
  }Info;

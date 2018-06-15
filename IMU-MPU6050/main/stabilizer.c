@@ -22,8 +22,8 @@ void stabilizerTask(void* param);
 void Stabilizer(uint8_t *status)
 {
 	Controller_Init();
-	//Ultrasonic_Init();
-	GPS_Init(status);
+	Ultrasonic_Init();
+	//GPS_Init(status);
 	printf("gps status: %d\n", *status);
 	infoQueue = xQueueCreate(1, sizeof(Info));
 
@@ -42,25 +42,13 @@ bool stabilizerTest(void)
 
   	return pass;
 }
-/*
- * setpoint->mode.z = modeDisable;
- * setpoint->mode.x = modeDisable;
- * setpoint->mode.y = modeDisable;
- * setpoint->attitudeRate.roll = 0;
- * setpoint->attitudeRate.pitch = 0;
- * setpoint->attitudeRate.yaw  = commanderGetActiveYaw();
- * setpoint->attitude.pitch = commanderGetActivePitch();
- * setpoint->attitude.roll = commanderGetActiveRoll();
- * setpoint->thrust = commanderGetActiveThrust();
- * attitudeDesired.yaw -= setpoint->attitudeRate.yaw/500.0;
- * attitudeDesired.roll = setpoint->attitude.roll;
- * attitudeDesired.pitch = setpoint->attitude.pitch;
- */
+
 void stabilizerTask(void* param)
 {
 	uint32_t tick = 0;
 	uint32_t lastWakeTime;
 	Info info;
+	unsigned int height;
 //	vTaskSetApplicationTaskTag(0, (void*)TASK_STABILIZER_ID_NBR);
 
 	// Wait for sensors to be calibrated
@@ -82,7 +70,11 @@ void stabilizerTask(void* param)
 		info.attitude.y = state.attitude.pitch;
 		info.attitude.z = state.attitude.yaw;
 		//GPS_GetInfo(&info.gps);
-		//Ultrasonic_GetDistance(&info.height);
+		if (RATE_DO_EXECUTE(100, tick))
+		{
+		    if (Ultrasonic_GetDistance(&height) == pdTRUE)
+		        info.height = height;
+		}
 		xQueueOverwrite(infoQueue, &info);
 
 		attitude_t target;
