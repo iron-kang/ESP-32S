@@ -249,9 +249,9 @@ void action_direction(char *buf_in, TaskPara *para)
 			{
 				attitude_desired.roll = -old_desired_roll;
 				Controller_SetAttitude(&attitude_desired);
-				vTaskDelay(10 / portTICK_RATE_MS);
+				vTaskDelay(1000 / portTICK_RATE_MS);
 			}
-//			printf("%.2f, %d\n", attitude_desired.roll, old_desired_roll);
+
 			attitude_desired.roll = 0;
 			old_desired_roll = 0;
 			break;
@@ -268,8 +268,9 @@ void action_direction(char *buf_in, TaskPara *para)
 			{
 				attitude_desired.pitch = -old_desired_pitch;
 				Controller_SetAttitude(&attitude_desired);
-				vTaskDelay(10 / portTICK_RATE_MS);
+				vTaskDelay(1000 / portTICK_RATE_MS);
 			}
+//			printf("%.2f, %d\n", attitude_desired.pitch, old_desired_pitch);
 			attitude_desired.pitch = 0;
 			old_desired_pitch = 0;
 			break;
@@ -280,7 +281,7 @@ void action_direction(char *buf_in, TaskPara *para)
 		motor_LB.setBaseThrust(&motor_LB, thrust);
 		motor_RF.setBaseThrust(&motor_RF, thrust);
 		motor_RB.setBaseThrust(&motor_RB, thrust);
-		//printf("desired angle: %.2f, thrust_old: %.2f, thrust:%.2f\n", desired_angle,thrust_base_old, thrust);
+//		printf("desired angle: %.2f, thrust_old: %.2f\n", desired_angle,thrust_base_old);
 //		printf("desired: %.2f, %.2f\n", attitude_desired.roll, attitude_desired.pitch);
 		Controller_SetAttitude(&attitude_desired);
 	}
