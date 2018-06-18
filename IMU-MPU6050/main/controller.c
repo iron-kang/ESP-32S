@@ -45,7 +45,7 @@
 #define KP_YAW  			10.0
 #define KI_YAW  			1.0
 #define KD_YAW  			0.35
-#define DT 					(1/500.0)
+#define DT                  (1.0/ATTITUDE_RATE)
 
 
 char *pid_key[PID_NUM] = {

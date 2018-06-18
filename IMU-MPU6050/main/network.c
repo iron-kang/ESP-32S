@@ -14,7 +14,7 @@
 #include "system.h"
 #include "driver/uart.h"
 
-#define Telemetry_433
+//#define Telemetry_433
 #define ACT_NUM 9
 
 static const char *TAG = "Network";
@@ -35,6 +35,9 @@ void action_startup(char *buf_in, TaskPara *para);
 void action_getInfo_android(char *buf_in, TaskPara *para);
 
 static float bat;
+int old_desired_roll = 0;
+int old_desired_pitch = 0;
+double thrust_base_old = 0;
 uint8_t connect_num = 0;
 uint8_t *system_status = NULL;
 state_t *state;
@@ -173,6 +176,7 @@ void action_getInfo(char *buf_in, TaskPara *para)
 	para->buf_out[0] = 'A';
 	memcpy(&para->buf_out[1], &data, sizeof(data));
 
+//	printf("height: %d\n", data.height);
 //	printf("status: %d\n", *system_status);
 //	printf("bat: %f\n", data.bat);
 //	printf("GPS: %f, %f, %f\n", data.gps.latitude, data.gps.longitude, data.gps.altitude);
@@ -180,13 +184,16 @@ void action_getInfo(char *buf_in, TaskPara *para)
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 #ifdef Telemetry_433
 	int len = 0;
-	uint8_t tryCnt = 0;
-	while (len != (sizeof(data)+1))
+	uint8_t cs = 0;
+
+//	while (len != (sizeof(data)+1))
 	{
-		len = uart_write_bytes(Telemetry_UART_NUM, para->buf_out, sizeof(data)+1);
-		tryCnt++;
-		if (tryCnt > 10)
-			break;
+		for (len = 0; len < sizeof(data)+1; len++)
+			cs += para->buf_out[len];
+		para->buf_out[sizeof(data)+1] = cs;
+		len = uart_write_bytes(Telemetry_UART_NUM, para->buf_out, sizeof(data)+2);
+		uart_flush(Telemetry_UART_NUM);
+
 	}
 #else
 	netconn_write(para->newconn, para->buf_out, sizeof(data)+1, NETCONN_NOCOPY);
@@ -211,41 +218,73 @@ void action_thrust(char *buf_in, TaskPara *para)
 		thrust = 50 + buf_in[3]/10.0;
 	}
 #endif
-	thrust = 50 + buf_in[3]/8.0;
+	thrust = 50 + buf_in[3]/7.7;
 	motor_LF.setBaseThrust(&motor_LF, thrust);
  	motor_LB.setBaseThrust(&motor_LB, thrust);
  	motor_RF.setBaseThrust(&motor_RF, thrust);
  	motor_RB.setBaseThrust(&motor_RB, thrust);
+ 	thrust_base_old = thrust;
  	printf("thrust: %f, %d\n", motor_LF.thrust_base, buf_in[3]);
 }
 
 void action_direction(char *buf_in, TaskPara *para)
 {
+	double desired_angle = 0;
+	double thrust = 0;
+
 	if (buf_in[2] == 'b')
 	{
 		switch (buf_in[3])
 		{
 		case 'r':
-			attitude_desired.roll = 6;
+			attitude_desired.roll = 7;
+			old_desired_roll = 7;
 			break;
 		case 'l':
-			attitude_desired.roll = -6;
+			attitude_desired.roll = -7;
+			old_desired_roll = -7;
 			break;
 		case 's':
+			if (abs(old_desired_roll) != 0)
+			{
+				attitude_desired.roll = -old_desired_roll;
+				Controller_SetAttitude(&attitude_desired);
+				vTaskDelay(10 / portTICK_RATE_MS);
+			}
+//			printf("%.2f, %d\n", attitude_desired.roll, old_desired_roll);
 			attitude_desired.roll = 0;
+			old_desired_roll = 0;
 			break;
 		case 'f':
-			attitude_desired.pitch = -6;
+			attitude_desired.pitch = -7;
+			old_desired_pitch = -7;
 			break;
 		case 'b':
-			attitude_desired.pitch = 6;
+			attitude_desired.pitch = 7;
+			old_desired_pitch = 7;
 			break;
 		case 'S':
+			if (abs(old_desired_pitch) != 0)
+			{
+				attitude_desired.pitch = -old_desired_pitch;
+				Controller_SetAttitude(&attitude_desired);
+				vTaskDelay(10 / portTICK_RATE_MS);
+			}
 			attitude_desired.pitch = 0;
+			old_desired_pitch = 0;
 			break;
 		}
+		desired_angle = fmax(fabs(attitude_desired.roll), fabs(attitude_desired.pitch));
+		thrust = thrust_base_old/cos(M_PI/180*desired_angle);
+		motor_LF.setBaseThrust(&motor_LF, thrust);
+		motor_LB.setBaseThrust(&motor_LB, thrust);
+		motor_RF.setBaseThrust(&motor_RF, thrust);
+		motor_RB.setBaseThrust(&motor_RB, thrust);
+		//printf("desired angle: %.2f, thrust_old: %.2f, thrust:%.2f\n", desired_angle,thrust_base_old, thrust);
+//		printf("desired: %.2f, %.2f\n", attitude_desired.roll, attitude_desired.pitch);
+		Controller_SetAttitude(&attitude_desired);
 	}
-	Controller_SetAttitude(&attitude_desired);
+
 }
 
 
@@ -338,16 +377,16 @@ void server_telemetry_task(void *pvParameters)
 
 	while (true)
 	{
-		len = uart_read_bytes(Telemetry_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
+		len = uart_read_bytes(Telemetry_UART_NUM, &tmp, 1, 5 / portTICK_RATE_MS);
 
 		if (len == 1 && tmp == '@')
 		{
-			len = uart_read_bytes(Telemetry_UART_NUM, &tmp, 1, 20 / portTICK_RATE_MS);
+			len = uart_read_bytes(Telemetry_UART_NUM, &tmp, 1, 5 / portTICK_RATE_MS);
 			if (len == 1 && tmp == '#')
 			{
 				System_ClearNetTimout();
-				len = uart_read_bytes(Telemetry_UART_NUM, buf, 2, 20 / portTICK_RATE_MS);
-				printf("head: %x\n", buf[0]);
+				len = uart_read_bytes(Telemetry_UART_NUM, buf, 2, 5 / portTICK_RATE_MS);
+
 				for (act = 0; act < ACT_NUM; act++)
 				{
 					if (buf[0] == actions[act].header)
@@ -358,7 +397,7 @@ void server_telemetry_task(void *pvParameters)
 				}
 			}
 		}
-		vTaskDelayUntil(&lastWakeTime, 100);
+		vTaskDelayUntil(&lastWakeTime, 50);
 	}
 	free(para);
 }
@@ -402,7 +441,7 @@ void Network_Init(uint8_t *status)
 		.parity = UART_PARITY_DISABLE,
 		.stop_bits = UART_STOP_BITS_1,
 		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-		.rx_flow_ctrl_thresh = 122,
+		//.rx_flow_ctrl_thresh = 122,
 	};
 
 	uart_param_config(Telemetry_UART_NUM, &uart_config);
@@ -412,6 +451,7 @@ void Network_Init(uint8_t *status)
 				 UART_PIN_NO_CHANGE,
 				 UART_PIN_NO_CHANGE);
 	uart_driver_install(Telemetry_UART_NUM, 1024 * 2, 0, 0, NULL, 0);
+	xTaskCreate(&server_telemetry_task, "server-telemetry-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
 #else
 	esp_log_level_set("wifi", ESP_LOG_NONE);
 	tcpip_adapter_init();
@@ -463,5 +503,5 @@ void Network_Init(uint8_t *status)
 #endif
 	xTaskCreate(&server_task, "server-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
 #endif
-	xTaskCreate(&server_telemetry_task, "server-telemetry-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
+
 }

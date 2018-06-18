@@ -22,7 +22,7 @@ void stabilizerTask(void* param);
 void Stabilizer(uint8_t *status)
 {
 	Controller_Init();
-	Ultrasonic_Init();
+//	Ultrasonic_Init();
 	//GPS_Init(status);
 	printf("gps status: %d\n", *status);
 	infoQueue = xQueueCreate(1, sizeof(Info));
@@ -57,7 +57,7 @@ void stabilizerTask(void* param)
 	{
 		vTaskDelayUntil(&lastWakeTime, 1);
 	}
-
+	printf("start stabilizer\n");
 	while (true)
 	{
 		vTaskDelayUntil(&lastWakeTime, 1);
@@ -70,11 +70,11 @@ void stabilizerTask(void* param)
 		info.attitude.y = state.attitude.pitch;
 		info.attitude.z = state.attitude.yaw;
 		//GPS_GetInfo(&info.gps);
-		if (RATE_DO_EXECUTE(100, tick))
-		{
-		    if (Ultrasonic_GetDistance(&height) == pdTRUE)
-		        info.height = height;
-		}
+//		if (RATE_DO_EXECUTE(100, tick))
+//		{
+//		    if (Ultrasonic_GetDistance(&height) == pdTRUE)
+//		        info.height = height;
+//		}
 		xQueueOverwrite(infoQueue, &info);
 
 		attitude_t target;

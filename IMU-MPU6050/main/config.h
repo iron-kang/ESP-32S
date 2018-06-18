@@ -25,9 +25,10 @@
 #define Telemetry_BAUD          57600
 
 // Bus channel
-#define GPS_UART_NUM			UART_NUM_2
-#define Telemetry_UART_NUM	    UART_NUM_1
-#define IMU_I2C_NUM				I2C_NUM_1
+#define GPS_UART_NUM            UART_NUM_2
+#define Ultrasonic_UART_NUM     UART_NUM_1
+#define Telemetry_UART_NUM      UART_NUM_1
+#define IMU_I2C_NUM             I2C_NUM_1
 
 // GPIO pin define
 #define PIN_LED_YELLOW          23

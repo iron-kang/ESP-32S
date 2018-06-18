@@ -18,12 +18,13 @@ typedef struct _motor {
 	double thrust_base;
 	double thrust_extra;
 	double thrust;
-	double thrust_add;
+	double thrust_base_ex;
 	xSemaphoreHandle mutex;
 
 	void (*update)(struct _motor *this);
 	void (*d4)(struct _motor *this);
 	void (*setBaseThrust)(struct _motor *this, double val);
+	void (*setBaseEXThrust)(struct _motor *this, double val);
 
 }Motor;
 

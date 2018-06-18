@@ -38,9 +38,9 @@ void ultrasonic_task(void* arg)
 	lastWakeTime = xTaskGetTickCount ();
 	while (true)
 	{
-		uart_write_bytes(UART_NUM_2, CMD, 6);
+		uart_write_bytes(Ultrasonic_UART_NUM, CMD, 6);
 		vTaskDelay(1 / portTICK_RATE_MS);
-		len = uart_read_bytes(UART_NUM_2, Rx_DATA, 8, 20 / portTICK_RATE_MS);
+		len = uart_read_bytes(Ultrasonic_UART_NUM, Rx_DATA, 8, 20 / portTICK_RATE_MS);
 		if (len == 8)
 		{
 			Distance = ((Rx_DATA[5]<<8)|Rx_DATA[6]);
@@ -56,7 +56,7 @@ void ultrasonic_task(void* arg)
 				buf_dist[id_prv] = Distance;
 			}
 			slope_prv = slope_cur;
-			//printf("%d cm\n", Distance);
+//			printf("%d cm\n", Distance);
 			//xQueueOverwrite(ultrsonicQueue, &Distance);
 			buf_dist[cnt++] = Distance;
 		}
@@ -67,14 +67,14 @@ void ultrasonic_task(void* arg)
 			    Dist += buf_dist[len];
 			Dist /= 10;
 			out_dist = (int)Dist;
-			//printf("avg:(%d) cm\n", out_dist);
+//			printf("avg:(%d) cm\n", out_dist);
 			xQueueOverwrite(ultrsonicQueue, &out_dist);
 			Dist = 0;
 		}
 		if (cnt == 10) cnt = 0;
 #endif
 
-		vTaskDelayUntil(&lastWakeTime, 50);
+		vTaskDelayUntil(&lastWakeTime, 100);
 	}
 }
 
@@ -94,13 +94,13 @@ void Ultrasonic_Init()
 		.rx_flow_ctrl_thresh = 122,
 	};
 
-	uart_param_config(UART_NUM_2, &uart_config);
-	uart_set_pin(UART_NUM_2,
+	uart_param_config(Ultrasonic_UART_NUM, &uart_config);
+	uart_set_pin(Ultrasonic_UART_NUM,
 				 PIN_Ultrasonic_TX,
 				 PIN_Ultrasonic_RX,
 				 UART_PIN_NO_CHANGE,
 				 UART_PIN_NO_CHANGE);
-	uart_driver_install(UART_NUM_2, 1024 * 2, 0, 0, NULL, 0);
+	uart_driver_install(Ultrasonic_UART_NUM, 1024 * 2, 0, 0, NULL, 0);
 	ultrsonicQueue = xQueueCreate(1, sizeof(unsigned int));
 	printf("ultrasonic init\n");
 

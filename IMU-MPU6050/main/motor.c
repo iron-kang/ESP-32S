@@ -8,6 +8,7 @@
 void _update(Motor *this);
 void _d4(Motor *this);
 void _setBaseThrust(Motor *this, double val);
+void _setBaseEXThrust(Motor *this, double val);
 
 void Motor_Init()
 {
@@ -48,6 +49,11 @@ void Motor_Init()
 	motor_RF.thrust_base = duty;
 	motor_RB.thrust_base = duty;
 
+	motor_LF.thrust_base_ex = 0;
+	motor_LB.thrust_base_ex = 0;
+	motor_RF.thrust_base_ex = 0;
+	motor_RB.thrust_base_ex = 0;
+
 	motor_LF.thrust_extra = 0;
 	motor_LB.thrust_extra = 0;
 	motor_RF.thrust_extra = 0;
@@ -72,6 +78,11 @@ void Motor_Init()
 	motor_LB.setBaseThrust = _setBaseThrust;
 	motor_RF.setBaseThrust = _setBaseThrust;
 	motor_RB.setBaseThrust = _setBaseThrust;
+
+	motor_LF.setBaseEXThrust = _setBaseEXThrust;
+	motor_LB.setBaseEXThrust = _setBaseEXThrust;
+	motor_RF.setBaseEXThrust = _setBaseEXThrust;
+	motor_RB.setBaseEXThrust = _setBaseEXThrust;
 
 	motor_LF.update(&motor_LF);
 	motor_LB.update(&motor_LB);
@@ -98,6 +109,18 @@ void _setBaseThrust(Motor *this, double val)
 	this->update(this);
 }
 
+void _setBaseEXThrust(Motor *this, double val)
+{
+	if (val < this->thrust_base)
+		this->thrust_base_ex = val;
+	else
+		this->thrust_base_ex = 0;
+
+	printf("thrust base: %f, ex: %f\n", this->thrust_base, val);
+
+	this->update(this);
+}
+
 void _d4(Motor *this)
 {
 	this->thrust_base = THRUST_MIN;
@@ -109,7 +132,7 @@ void _d4(Motor *this)
 void _update(Motor *this)
 {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	this->thrust = this->thrust_base + this->thrust_extra;
+	this->thrust = this->thrust_base + this->thrust_base_ex + this->thrust_extra;
 	if (this->thrust > THRUST_MAX || this->thrust < THRUST_MIN)
 	{
 		this->thrust = this->thrust > THRUST_MAX ? THRUST_MAX : this->thrust;
