@@ -124,7 +124,7 @@ bool _testConnection(IMU *self)
 #endif
 
 #ifdef CONFIG_IMU_MPU9250
-	return data == 0x39;//0x38;
+	return data == 0x38;//0x39;//0x38;
 #endif
 }
 

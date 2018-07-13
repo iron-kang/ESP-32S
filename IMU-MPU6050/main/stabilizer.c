@@ -77,12 +77,7 @@ void stabilizerTask(void* param)
 //		}
 		xQueueOverwrite(infoQueue, &info);
 
-		attitude_t target;
-		target.pitch = 0;
-		target.roll = 0;
-		target.yaw = 0;
-
-		Controller_PID(&state, &sensorData, target, tick);
+		Controller_PID(&state, &sensorData, tick);
 #endif
 		tick++;
 	}

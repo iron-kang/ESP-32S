@@ -10,7 +10,8 @@ typedef enum {
 	LEFT_FORWARD = 0,
 	LEFT_BACK,
 	RIGHT_FORWARD,
-	RIGHT_BACK
+	RIGHT_BACK,
+	BASE
 } motor_t;
 
 typedef struct _motor {
@@ -19,12 +20,14 @@ typedef struct _motor {
 	double thrust_extra;
 	double thrust;
 	double thrust_base_ex;
+	double thrust_add;
 	xSemaphoreHandle mutex;
 
 	void (*update)(struct _motor *this);
 	void (*d4)(struct _motor *this);
 	void (*setBaseThrust)(struct _motor *this, double val);
 	void (*setBaseEXThrust)(struct _motor *this, double val);
+	void (*setThrustAdd)(struct _motor *this, double val);
 
 }Motor;
 

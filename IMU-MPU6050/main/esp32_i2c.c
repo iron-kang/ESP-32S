@@ -30,10 +30,16 @@ esp_err_t _write(I2C_CONFIG *self, uint8_t addr, uint8_t *data_wr, size_t size)
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (addr << 1 ) | I2C_MASTER_WRITE, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, data_wr[0], ACK_CHECK_EN);
-    for (int i = 1; i < size-2; i++)
-        i2c_master_write_byte(cmd, data_wr[i], ACK_VAL);
-    i2c_master_write_byte(cmd, data_wr[size-1], NACK_VAL);
+    if (size > 1)
+    {
+		i2c_master_write_byte(cmd, data_wr[0], ACK_CHECK_EN);
+		for (int i = 1; i < size-2; i++)
+			i2c_master_write_byte(cmd, data_wr[i], ACK_VAL);
+		i2c_master_write_byte(cmd, data_wr[size-1], NACK_VAL);
+    }
+    else
+    	i2c_master_write_byte(cmd, data_wr[0], NACK_VAL);
+
     i2c_master_stop(cmd);
     esp_err_t ret = i2c_master_cmd_begin(self->CHANNEL, cmd, 500 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);

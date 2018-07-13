@@ -1,13 +1,14 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
-
+//ESP32S spec:http://wiki.ai-thinker.com/esp32/spec/esp32s
 #include "freertos/FreeRTOSConfig.h"
 
 
+#define STABILIZER_TASK_PRI     5
 #define SENSORS_TASK_PRI        4
-#define STABILIZER_TASK_PRI     4
 #define NETWORK_TASK_PRI        3
 #define SYSTEM_TASK_PRI         3
+#define BARO_TASK_PRI           2
 #define ULTRASONIC_TASK_PRI     2
 #define GPS_TASK_PRI            2
 

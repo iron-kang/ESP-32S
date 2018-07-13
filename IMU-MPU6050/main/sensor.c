@@ -8,8 +8,10 @@
 #include "kalman.h"
 #include "utility.h"
 #include "driver/uart.h"
+#include "ms5611.h"
 
 #define SENSORS_TASK_NAME           "SENSORS"
+#define BARO_TASK_NAME              "BARO"
 #define MAG_GAUSS_PER_LSB           666.7f
 
 #define SENSORS_DEG_PER_LSB_CFG     MPU6050_DEG_PER_LSB_2000
@@ -26,6 +28,8 @@
 #define GYRO_VARIANCE_THRESHOLD_Y   (GYRO_VARIANCE_BASE)
 #define GYRO_VARIANCE_THRESHOLD_Z   (GYRO_VARIANCE_BASE)
 #define RAD_TO_DEG                  (180/M_PI)
+
+#define BARO
 
 typedef struct
 {
@@ -47,6 +51,7 @@ bool  isAK8963TestPassed = false;
 
 IMU imu;
 AK8963 mag;
+MS5611 baro;
 BiasObj gyroBiasRunning;
 Axis3f  gyroBias;
 sensorData_t sensors;
@@ -59,6 +64,7 @@ float cosPitch;
 float sinPitch;
 float cosRoll;
 float sinRoll;
+double referencePressure;
 
 void processAccGyroMeasurements(const uint8_t *buffer);
 void processMagnetometerMeasurements(const uint8_t *buffer);
@@ -163,6 +169,24 @@ void Sensor_Init(Bus *bus, uint8_t *status)
 	sensorsSetupSlaveRead();
 	imu.readAllRaw(&imu, buffer, BUF_LEN);
 	processAccGyroMeasurements(&(buffer[0]));
+
+#ifdef BARO
+	MS5611_Init(&baro, &bus->i2c, MS5611_HIGH_RES);
+	referencePressure = baro.readPressure(&baro, false);
+	uint32_t rawTemp = baro.readRawTemperature();
+	uint32_t rawPressure = baro.readRawPressure();
+
+	// Read true temperature & Pressure
+	double realTemperature = baro.readTemperature(&baro, false);
+	long realPressure = baro.readPressure(&baro, false);
+
+	// Calculate altitude
+	float absoluteAltitude = baro.getAltitude(realPressure, 101325);
+	float relativeAltitude = baro.getAltitude(realPressure, referencePressure);
+	printf("rawTemp = %d, realTemp: %f*C\n", rawTemp, realTemperature);
+	printf("rawPressure = %d, readPressure = %ldPa\n", rawPressure, realPressure);
+	printf("absoulteAltitude = %fm, relativeAltitude = %fm\n", absoluteAltitude, relativeAltitude);
+#endif
 
 #ifdef KALMAN
 	float roll = atan2(sensors.acc.y, sensors.acc.z) * RAD_TO_DEG;
@@ -556,14 +580,30 @@ void sensorsTask(void *param)
 	}
 }
 
+void baroTask(void *param)
+{
+	uint32_t lastWakeTime;
+	lastWakeTime = xTaskGetTickCount ();
+	while (true)
+	{
+		vTaskDelayUntil(&lastWakeTime, 20);
+
+		long realPressure = baro.readPressure(&baro, false);
+		// Calculate altitude
+		float absoluteAltitude = baro.getAltitude(realPressure, 101325);
+		float relativeAltitude = baro.getAltitude(realPressure, referencePressure);
+//		printf("absoulteAltitude = %fm, relativeAltitude = %fm\n", absoluteAltitude, relativeAltitude);
+	}
+}
+
 void SensorTask_Init()
 {
 	accelerometerDataQueue = xQueueCreate(1, sizeof(Axis3f));
 	gyroDataQueue          = xQueueCreate(1, sizeof(Axis3f));
 	magnetometerDataQueue  = xQueueCreate(1, sizeof(Axis3f));
-	barometerDataQueue     = xQueueCreate(1, sizeof(baro_t));
+	barometerDataQueue     = xQueueCreate(1, sizeof(float));
 
-//	xTaskCreate(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL);
-	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, STABILIZER_TASK_PRI, NULL, 0);
+	xTaskCreate(baroTask, BARO_TASK_NAME, 2048, NULL, BARO_TASK_PRI, NULL);
+	xTaskCreatePinnedToCore(sensorsTask, SENSORS_TASK_NAME, 2048, NULL, SENSORS_TASK_PRI, NULL, 0);
 }
 

@@ -15,7 +15,11 @@
 #include "driver/uart.h"
 
 //#define Telemetry_433
-#define ACT_NUM 9
+#define ACT_NUM    10
+#define PACKSIZE   20
+#define QT         0
+#define ANDROID    1
+#define CONTROLLER QT
 
 static const char *TAG = "Network";
 
@@ -33,6 +37,7 @@ void action_reboot(char *buf_in, TaskPara *para);
 void action_stop(char *buf_in, TaskPara *para);
 void action_startup(char *buf_in, TaskPara *para);
 void action_getInfo_android(char *buf_in, TaskPara *para);
+void action_getAttitude(char *buf_in, TaskPara *para);
 
 static float bat;
 int old_desired_roll = 0;
@@ -42,6 +47,7 @@ uint8_t connect_num = 0;
 uint8_t *system_status = NULL;
 state_t *state;
 Info data;
+Info_2 data2;
 Info_Android info_android;
 PidParam pid_attitude;
 PidParam pid_rate;
@@ -55,6 +61,7 @@ Action actions[] = {
 	{action_reboot,          'c'},
 	{action_stop,            'D'},
 	{action_startup,         'd'},
+	{action_getAttitude,     'E'},
 	{action_getInfo_android, 'F'},
 	{NULL,                   '\0'}
 };
@@ -134,8 +141,10 @@ void action_getPID(char *buf_in, TaskPara *para)
 	para->buf_out[0] = 'a';
 	memcpy(&para->buf_out[1],&pid_attitude, sizeof(PidParam));
 	memcpy(&para->buf_out[1+sizeof(PidParam)], &pid_rate, sizeof(PidParam));
-
+#ifdef Telemetry_433
+#else
 	netconn_write(para->newconn, para->buf_out, sizeof(PidParam)*2+1, NETCONN_COPY);
+#endif
 	printf("yaw : %f, %f, %f\n", pid_attitude.yaw[KP], pid_attitude.yaw[KI], pid_attitude.yaw[KD]);
 }
 
@@ -155,9 +164,24 @@ void action_getInfo_android(char *buf_in, TaskPara *para)
 	netconn_write(para->newconn, para->buf_out, sizeof(Info_Android)+1, NETCONN_NOCOPY);
 }
 
+void action_getAttitude(char *buf_in, TaskPara *para)
+{
+//	stabilizer_GetState(&data2);
+	data2.thrust[LEFT_FORWARD]  = motor_LF.thrust;
+	data2.thrust[LEFT_BACK]     = motor_LB.thrust;
+	data2.thrust[RIGHT_FORWARD] = motor_RF.thrust;
+	data2.thrust[RIGHT_BACK]    = motor_RB.thrust;
+
+//	printf("get attitude\n");
+//	para->buf_out[0] = 'E';
+	memcpy(&para->buf_out[0], &data2, sizeof(data2));
+	uart_write_bytes(Telemetry_UART_NUM, &para->buf_out[0], sizeof(data2));
+	printf("rpy: %f, %f, %f\n", data2.attitude.x, data2.attitude.y, data2.attitude.z);
+}
 
 void action_getInfo(char *buf_in, TaskPara *para)
 {
+//	LED_Toggle(PIN_LED_YELLOW);
 //	memset(para->buf_out, '0', 100);
 	stabilizer_GetState(&data);
 //	state = stablizer_GetState();
@@ -166,15 +190,16 @@ void action_getInfo(char *buf_in, TaskPara *para)
 //	data.attitude.y = state->attitude.pitch;
 //	data.attitude.z = state->attitude.yaw;
 
-	data.thrust[LEFT_FORWARD]  = motor_LF.thrust;
-	data.thrust[LEFT_BACK]     = motor_LB.thrust;
-	data.thrust[RIGHT_FORWARD] = motor_RF.thrust;
-	data.thrust[RIGHT_BACK]    = motor_RB.thrust;
+	data.thrust[LEFT_FORWARD]  = motor_LF.thrust_extra;
+	data.thrust[LEFT_BACK]     = motor_LB.thrust_extra;
+	data.thrust[RIGHT_FORWARD] = motor_RF.thrust_extra;
+	data.thrust[RIGHT_BACK]    = motor_RB.thrust_extra;
+	data.thrust[BASE]          = motor_RB.thrust_base;
 	System_GetBatVal(&bat);
 	data.bat = bat;
 	data.status = *system_status;
 	para->buf_out[0] = 'A';
-	memcpy(&para->buf_out[1], &data, sizeof(data));
+	memcpy(&para->buf_out[1	], &data, sizeof(data));
 
 //	printf("height: %d\n", data.height);
 //	printf("status: %d\n", *system_status);
@@ -183,18 +208,23 @@ void action_getInfo(char *buf_in, TaskPara *para)
 //	printf("thrust: %f, %f, %f, %f\n", motor_LF.thrust, motor_LB.thrust, motor_RF.thrust, motor_RB.thrust);
 //	printf("rpy: %f, %f, %f\n", data.attitude.x, data.attitude.y, data.attitude.z);
 #ifdef Telemetry_433
-	int len = 0;
+	char head = 'A';
 	uint8_t cs = 0;
+	uint8_t pack = sizeof(data)/PACKSIZE;
 
-//	while (len != (sizeof(data)+1))
+//	for (len = 0; len < sizeof(data)+1; len++)
+//		cs += para->buf_out[len];
+	para->buf_out[sizeof(data)+1] = cs;
+	uart_write_bytes(Telemetry_UART_NUM, &head, 1);
+	for (uint8_t i = 0; i < pack; i++)
 	{
-		for (len = 0; len < sizeof(data)+1; len++)
-			cs += para->buf_out[len];
-		para->buf_out[sizeof(data)+1] = cs;
-		len = uart_write_bytes(Telemetry_UART_NUM, para->buf_out, sizeof(data)+2);
-		uart_flush(Telemetry_UART_NUM);
-
+	    uart_write_bytes(Telemetry_UART_NUM, &para->buf_out[i*PACKSIZE], PACKSIZE);
+	    vTaskDelay(1 / portTICK_RATE_MS);
 	}
+	uart_write_bytes(Telemetry_UART_NUM, &para->buf_out[pack*PACKSIZE], sizeof(data)%PACKSIZE);
+	uart_flush(Telemetry_UART_NUM);
+
+
 #else
 	netconn_write(para->newconn, para->buf_out, sizeof(data)+1, NETCONN_NOCOPY);
 #endif
@@ -203,28 +233,36 @@ void action_getInfo(char *buf_in, TaskPara *para)
 void action_thrust(char *buf_in, TaskPara *para)
 {
 	double thrust = 0;
-#if 0
+#if CONTROLLER == QT
 	if (buf_in[3] == '+')
 	{
-		if (thrust > 62)
+		if (motor_LF.thrust_base > 62)
+		 	thrust = 0.1;
+		else if (motor_LF.thrust_base > 60)
  			thrust = 0.5;
  		else
- 			thrust = 0.5*3;
- 		thrust = 0.5*2;
+ 			thrust = 0.7;
+
 	}
-	else if (buf_in[3] == '-') thrust = -0.5*2;
+	else if (buf_in[3] == '-') thrust = -0.9;
 	else {
 
-		thrust = 50 + buf_in[3]/10.0;
+
 	}
-#endif
+	motor_LF.setThrustAdd(&motor_LF, thrust);
+	motor_LB.setThrustAdd(&motor_LB, thrust);
+	motor_RF.setThrustAdd(&motor_RF, thrust);
+	motor_RB.setThrustAdd(&motor_RB, thrust);
+#elif CONTROLLER == ANDROID
 	thrust = 50 + buf_in[3]/7.7;
 	motor_LF.setBaseThrust(&motor_LF, thrust);
- 	motor_LB.setBaseThrust(&motor_LB, thrust);
- 	motor_RF.setBaseThrust(&motor_RF, thrust);
- 	motor_RB.setBaseThrust(&motor_RB, thrust);
- 	thrust_base_old = thrust;
- 	printf("thrust: %f, %d\n", motor_LF.thrust_base, buf_in[3]);
+	motor_LB.setBaseThrust(&motor_LB, thrust);
+	motor_RF.setBaseThrust(&motor_RF, thrust);
+	motor_RB.setBaseThrust(&motor_RB, thrust);
+#endif
+
+ 	thrust_base_old = motor_LF.thrust_base;
+// 	printf("thrust: %f, %f\n", motor_LF.thrust_base, thrust);
 }
 
 void action_direction(char *buf_in, TaskPara *para)
@@ -249,7 +287,7 @@ void action_direction(char *buf_in, TaskPara *para)
 			{
 				attitude_desired.roll = -old_desired_roll;
 				Controller_SetAttitude(&attitude_desired);
-				vTaskDelay(1000 / portTICK_RATE_MS);
+				vTaskDelay(500 / portTICK_RATE_MS);
 			}
 
 			attitude_desired.roll = 0;
@@ -268,7 +306,7 @@ void action_direction(char *buf_in, TaskPara *para)
 			{
 				attitude_desired.pitch = -old_desired_pitch;
 				Controller_SetAttitude(&attitude_desired);
-				vTaskDelay(1000 / portTICK_RATE_MS);
+				vTaskDelay(500 / portTICK_RATE_MS);
 			}
 //			printf("%.2f, %d\n", attitude_desired.pitch, old_desired_pitch);
 			attitude_desired.pitch = 0;
@@ -437,7 +475,7 @@ void Network_Init(uint8_t *status)
 	system_status = status;
 #ifdef Telemetry_433
 	uart_config_t uart_config = {
-		.baud_rate = 57600,
+		.baud_rate = 115200,
 		.data_bits = UART_DATA_8_BITS,
 		.parity = UART_PARITY_DISABLE,
 		.stop_bits = UART_STOP_BITS_1,

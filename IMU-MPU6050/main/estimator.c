@@ -79,7 +79,7 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
 	    positionUpdateVelocity(state->acc.z, ATTITUDE_UPDATE_DT);
 
 	}
-
+#if 0
 	if (RATE_DO_EXECUTE(POS_UPDATE_RATE, tick))
 	{
 		// If position sensor data is preset, pass it throught
@@ -91,5 +91,6 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
 	    	positionEstimate(state, sensorData->baro.asl, POS_UPDATE_DT);
 	    }
 	}
+#endif
 }
 

@@ -71,12 +71,18 @@
 
  typedef struct _info {
  	AXIS attitude;
- 	float thrust[4];
+ 	float thrust[5];
  	float bat;
  	unsigned int height;
  	uint8_t status;
  	GPS_Data gps;
  }Info;
+
+ typedef struct _info2 {
+ 	AXIS attitude;
+ 	float thrust[4];
+ 	unsigned int height;
+ }Info_2;
 
  typedef struct _info_android {
 	 uint8_t status;
