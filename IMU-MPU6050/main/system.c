@@ -39,12 +39,14 @@ void BatRead_Init()
 void system_task(void *pvParameters)
 {
 	uint32_t lastWakeTime;
+	uint32_t cnt_loop = 0;
 	int32_t voltage, avg;
 	uint8_t cnt = 0, i;
 
 	lastWakeTime = xTaskGetTickCount ();
 	while (true)
 	{
+
 		net_timeout++;
 		bat[cnt++] = adc1_get_raw(ADC1_CHANNEL_4);
 		cnt %= SAMPLE_NUM;
@@ -72,7 +74,14 @@ void system_task(void *pvParameters)
 			*sys_status &= ~(1UL << STATUS_NET);
 
 //		printf("CPU usage: %d\n", System_GetCPUUsage());
-		vTaskDelayUntil(&lastWakeTime, 500);
+		if ((cnt_loop % 12) < 6)
+		{
+			LED_Toggle(PIN_LED_YELLOW);
+//			printf("loop cnt: %d\n", cnt_loop%12);
+		}
+
+		vTaskDelayUntil(&lastWakeTime, 250);
+		cnt_loop++;
 	}
 }
 

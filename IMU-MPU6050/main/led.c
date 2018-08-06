@@ -4,7 +4,7 @@
 
 void LED_Init()
 {
-#if 0
+#if 1
 	gpio_config_t io_conf;
 	io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
 	io_conf.mode = GPIO_MODE_OUTPUT;
@@ -13,8 +13,10 @@ void LED_Init()
 	io_conf.pull_up_en = 0;
 	gpio_config(&io_conf);
 
-	gpio_set_level(PIN_LED_YELLOW, 0);
+//	gpio_set_level(PIN_LED_YELLOW, 1);
 #endif
+
+#if 0
 	ledc_timer_config_t ledc_timer = {
 		.duty_resolution = LEDC_TIMER_13_BIT, // resolution of PWM duty
 		.freq_hz = 10,                      // frequency of PWM signal
@@ -35,10 +37,10 @@ void LED_Init()
 	ledc_fade_func_install(0);
 
 	ledc_set_fade_with_time(ledc_channel.speed_mode,
-							ledc_channel.channel, 2000, 300);
+							ledc_channel.channel, 4096, 300);
 	ledc_fade_start(ledc_channel.speed_mode,
 					ledc_channel.channel, LEDC_FADE_NO_WAIT);
-
+#endif
 }
 
 void LED_Toggle(gpio_num_t led)
@@ -46,6 +48,7 @@ void LED_Toggle(gpio_num_t led)
 	static int toggle = 0;
 	toggle = !toggle;
 
+//	printf("led tootle: %d\n", toggle);
 	gpio_set_level(led, toggle);
 }
 
