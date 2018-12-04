@@ -1,0 +1,47 @@
+menu "RobtoArm configuration"
+
+	menu "I/O configuration"
+	config PIN_LED
+		int "LED gpio pin"
+		default 23
+		help
+			LED pin
+	
+	config PIN_MOTOR_1	
+		int "Motor 1 gpio pin"
+		default 2
+		help
+			Motor 1 pin
+			
+	config PIN_MOTOR_2	
+		int "Motor 2 gpio pin"
+		default 4
+		help
+			Motor 2 pin
+			
+	config PIN_MOTOR_3	
+		int "Motor 3 gpio pin"
+		default 21
+		help
+			Motor 3 pin
+			
+	config PIN_MOTOR_4	
+		int "Motor 4 gpio pin"
+		default 22
+		help
+			Motor 4 pin
+			
+	config PIN_MOTOR_5	
+		int "Motor 5 gpio pin"
+		default 18
+		help
+			Motor 5 pin
+			
+	config PIN_MOTOR_6	
+		int "Motor 6 gpio pin"
+		default 5
+		help
+			Motor 6 pin
+			
+	endmenu
+endmenu

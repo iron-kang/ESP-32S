@@ -1,0 +1,12 @@
+eclipse.preferences.version=1
+environment/project/0.1049545635/BATCH_BUILD/delimiter=\:
+environment/project/0.1049545635/BATCH_BUILD/operation=append
+environment/project/0.1049545635/BATCH_BUILD/value=1
+environment/project/0.1049545635/IDF_PATH/delimiter=\:
+environment/project/0.1049545635/IDF_PATH/operation=replace
+environment/project/0.1049545635/IDF_PATH/value=../../../../esp-idf
+environment/project/0.1049545635/PATH/delimiter=\:
+environment/project/0.1049545635/PATH/operation=append
+environment/project/0.1049545635/PATH/value=../../../../../xtensa-esp32-elf/bin/
+environment/project/0.1049545635/append=true
+environment/project/0.1049545635/appendContributed=true
