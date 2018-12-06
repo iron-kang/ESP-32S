@@ -36,7 +36,7 @@ void LED_Init()
 	ledc_fade_func_install(0);
 
 	ledc_set_fade_with_time(ledc_channel.speed_mode,
-							ledc_channel.channel, 4000, 3000);
+							ledc_channel.channel, 1000, 3000);
 	ledc_fade_start(ledc_channel.speed_mode,
 					ledc_channel.channel, LEDC_FADE_NO_WAIT);
 #endif

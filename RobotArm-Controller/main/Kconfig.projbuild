@@ -42,6 +42,44 @@ menu "RobtoArm configuration"
 		default 5
 		help
 			Motor 6 pin
+	endmenu
+	
+	menu "WiFi configuration"
+	config WIFI_SSID
+		string "Wifi SSID"
+		default "esp32-ap"
+		help
+			SSID for the Access Point Wifi network (max 31 chars)
+
+	config WIFI_PASSWORD
+		string "Wifi password"
+		help
+			Password for the Wifi network (if needed)
 			
+	config WIFI_CHANNEL
+		int "wi-fi channel"
+		default 6
+		help
+			wi-fi channel
+			
+	config AP_HIDE_SSID
+            int "Hide SSID"
+            default 0
+            help
+                    Hide SSID
+
+    config AP_MAX_CONNECTIONS
+            int "Maximum concurrent connections"
+            range 1 4
+            default 4
+            help
+                    Maximum number of concurrent connections (1-4)
+
+    config AP_BEACON_INTERVAL
+            int "Beacon interval (ms)"
+            range 100 60000
+            default 100
+            help
+                    Beacon interval in ms (100-60000)
 	endmenu
 endmenu
