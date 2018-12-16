@@ -1,9 +1,14 @@
 #include "motor.h"
+#include "config.h"
 #include "driver/mcpwm.h"
 
 #define PWM_MAX  2.2
 #define PWM_MIN  0.8
 #define PWM_PERIOD 20.0
+
+const float joint_config[6] = { 105, 180, 180, 0, 90, 0 };
+const float joint_d4[6]     = { 105,  60,  90, 0, 90, 90 };
+bool pwmEn = false;
 
 void Motor_Init()
 {
@@ -35,10 +40,12 @@ void Motor_Init()
 	mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_1, &pwm_config);
 	mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_2, &pwm_config);
 
-	float duty = mcpwm_get_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A);
-	printf("pwm duty: %f\n", duty);
+	mcpwm_stop(MCPWM_UNIT_0, MCPWM_TIMER_0);
+	mcpwm_stop(MCPWM_UNIT_0, MCPWM_TIMER_1);
+	mcpwm_stop(MCPWM_UNIT_0, MCPWM_TIMER_2);
 
-//	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 12);  // min:3(0 deg) max:15 mid:7.5 12(180 deg) y = x/180*9 + 3
+#if 0
+	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 12);  // min:3(0 deg) max:15 mid:7.5 12(180 deg) y = x/180*9 + 3
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 10);
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, 15);
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_B, 20);
@@ -46,9 +53,10 @@ void Motor_Init()
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_OPR_B, PWM_MAX/PWM_PERIOD*100);
 	duty = mcpwm_get_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_OPR_B);
 	printf("pwm duty: %f\n", duty);
+#endif
 }
 
-void Motor_SetAngle(float *joint)
+void Motor_SetAngle(const float *joint)
 {
 	float duty = joint[J1]/DEGREE_MAX*(PWM_DUTY_MAX - PWM_DUTY_MIN) + PWM_DUTY_MIN;
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty);
@@ -67,5 +75,13 @@ void Motor_SetAngle(float *joint)
 
 	duty = joint[J6]/DEGREE_MAX*(PWM_DUTY_MAX - PWM_DUTY_MIN) + PWM_DUTY_MIN;
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_OPR_B, duty);
+
+	if (!pwmEn)
+	{
+		mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
+		mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_1);
+		mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_2);
+		pwmEn = true;
+	}
 }
 

@@ -9,19 +9,26 @@
 #include "esp_system.h"
 #include "config.h"
 #include "string.h"
+#include "motor.h"
 
-static const char *TAG = "Network";
+#define ACT_NUM    2
+
+extern bool isGoal;
+xQueueHandle jointQ;
+float joints[6];
 
 typedef struct _tskpara {
 	struct netconn *newconn;
 	char buf_out[200];
 }TaskPara;
 
-int old_desired_roll = 0;
-int old_desired_pitch = 0;
-double thrust_base_old = 0;
-uint8_t connect_num = 0;
-uint8_t *system_status = NULL;
+void action_setJoint(char *buf_in);
+void action_Home(char *buf_in);
+
+Action actions[] = {
+	{action_setJoint,         'A'},
+	{action_Home,             'a'}
+};
 
 void action_reboot(char *buf_in, TaskPara *para)
 {
@@ -47,6 +54,42 @@ esp_err_t event_handler(void *ctx, system_event_t *event)
 	return ESP_OK;
 }
 
+void action_Home(char *buf_in)
+{
+	if (!isGoal) return;
+	printf("Home\n");
+	printf("-->1: %.2f, 2: %.2f, 3: %.2f, 4: %.2f, 5: %.2f, 6: %.2f\n",
+					joints[J1], joints[J2], joints[J3],
+					joints[J4], joints[J5], joints[J6]);
+	xQueueOverwrite(jointQ, joint_d4);
+}
+
+void action_setJoint(char *buf_in)
+{
+	if (!isGoal) return;
+//	float joint[6];
+
+	memcpy(joints, buf_in, sizeof(float)*6);
+	joints[J1] =  joints[J1]*7/9 + joint_config[J1];
+	joints[J2] = -joints[J2] + joint_config[J2];
+	joints[J3] =  joints[J3] + joint_config[J3];
+	joints[J5] = -joints[J5] + joint_config[J5];
+
+	joints[J6] = joints[J6] == 0 ? 90 : 50;
+
+//	joints[J1] = joint[J1];
+//	joints[J2] = joint[J2];
+//	joints[J3] = joint[J3];
+//	joints[J4] = joint[J4];
+//	joints[J5] = joint[J5];
+//	joints[J6] = joint[J6];
+//	memcpy(joints, joint, sizeof(joint));
+	printf("1: %.2f, 2: %.2f, 3: %.2f, 4: %.2f, 5: %.2f, 6: %.2f\n",
+				joints[J1], joints[J2], joints[J3],
+				joints[J4], joints[J5], joints[J6]);
+	Motor_SetAngle(joints);
+}
+
 void client_task(void *pvParameters)
 {
 	uint8_t act;
@@ -61,19 +104,19 @@ void client_task(void *pvParameters)
 		if (err == ERR_OK)
 		{
 			netbuf_data(inbuf, (void**)&buf, &buflen);
-
+            printf("%c: ", buf[2]);
 			if ((buf[0] != '@') || (buf[1] != '#'))
 				continue;
 			netbuf_delete(inbuf);
 
-//			for (act = 0; act < ACT_NUM; act++)
-//			{
-//				if (buf[2] == actions[act].header)
-//				{
-//					actions[act].action(buf, para);
-//					break;
-//				}
-//			}
+			for (act = 0; act < ACT_NUM; act++)
+			{
+				if (buf[2] == actions[act].header)
+				{
+					actions[act].action(&buf[3]);
+					break;
+				}
+			}
 		}
 		else
 			break;
@@ -150,6 +193,8 @@ void Network_Init()
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
 
-//	xTaskCreate(&server_task, "server-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
+	jointQ = xQueueCreate(1, sizeof(float)*6);
+
+	xTaskCreate(&server_task, "server-task", 2048, NULL, NETWORK_TASK_PRI, NULL);
 
 }
